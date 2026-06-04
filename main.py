@@ -44,9 +44,14 @@ from supabase import Client, create_client
 #  CONFIGURACIÓN
 # ─────────────────────────────────────────────
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "TU_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "TU_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
+if not SUPABASE_URL or not SUPABASE_URL.startswith("https://"):
+    raise RuntimeError(f"SUPABASE_URL inválida: '{SUPABASE_URL}'")
+if not SUPABASE_KEY:
+    raise RuntimeError("SUPABASE_KEY no está configurada")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
