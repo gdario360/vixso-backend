@@ -29,7 +29,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 from pydantic import BaseModel
 from reportlab.lib import colors
@@ -56,6 +56,14 @@ if not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = FastAPI(title="VIXSO API", version="3.0.0")
+
+@app.get("/", include_in_schema=False)
+def serve_mobile():
+    return FileResponse("vixso_mobile_ui.html")
+
+@app.get("/admin", include_in_schema=False)
+def serve_admin():
+    return FileResponse("vixso_admin_ui.html")
 
 app.add_middleware(
     CORSMiddleware,

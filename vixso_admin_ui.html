@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIXSO — Panel de Administración</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#060b17; --bg2:#0c1426; --bg3:#111d35;
+    --card:rgba(255,255,255,.04); --card-b:rgba(255,255,255,.08);
+    --blue:#00c8ff; --blue2:#0078d4; --purple:#7b2ff7; --purple2:#a855f7;
+    --green:#00e676; --amber:#ffb300; --red:#ff3d5a;
+    --text:#e2eeff; --text2:#7a9ab8; --text3:#3d5a7a;
+    --border:rgba(0,200,255,.12); --radius:12px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;}
+
+  /* ── SIDEBAR ── */
+  .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+  .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+  .logo-text{font-size:22px;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,#fff,var(--blue),var(--purple2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .logo-sub{font-size:10px;color:var(--text3);letter-spacing:2px;margin-top:2px;}
+  .sidebar-nav{flex:1;padding:12px 0;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);border-left:3px solid transparent;transition:all .15s;}
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+  .nav-item.active{color:var(--blue);border-left-color:var(--blue);background:rgba(0,200,255,.06);}
+  .nav-icon{font-size:16px;width:20px;text-align:center;}
+  .sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);}
+  .user-chip{display:flex;align-items:center;gap:10px;}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue2),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .user-name{font-size:12px;color:var(--text2);}
+
+  /* ── MAIN CONTENT ── */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;}
+  .topbar-title{font-size:16px;font-weight:600;}
+  .topbar-actions{display:flex;gap:8px;align-items:center;}
+  .content{flex:1;overflow-y:auto;padding:24px;}
+  .content::-webkit-scrollbar{width:4px;}
+  .content::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+  /* ── PANELS ── */
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* ── CARDS ── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+  .card-title{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .card-title span{font-size:18px;}
+
+  /* ── BUTTONS ── */
+  .btn{border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;padding:9px 16px;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:linear-gradient(135deg,var(--blue2),var(--purple));color:#fff;box-shadow:0 2px 12px rgba(0,200,255,.2);}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-ghost{background:var(--card-b);color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+  .btn-danger{background:rgba(255,61,90,.15);color:var(--red);border:1px solid rgba(255,61,90,.3);}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}
+  .btn-success{background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.3);}
+
+  /* ── FORM ELEMENTS ── */
+  .form-row{display:grid;gap:14px;margin-bottom:14px;}
+  .form-row.cols-2{grid-template-columns:1fr 1fr;}
+  .form-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+  .field label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:13px;outline:none;transition:border-color .2s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,200,255,.08);}
+  .field select{appearance:none;}
+  .field textarea{resize:vertical;min-height:80px;}
+
+  /* ── TABLES ── */
+  .data-table{width:100%;border-collapse:collapse;}
+  .data-table th{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;}
+  .data-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);}
+  .data-table tr:hover td{background:rgba(255,255,255,.02);}
+  .data-table tr:last-child td{border-bottom:none;}
+
+  /* ── PILLS ── */
+  .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .pill-blue{background:rgba(0,200,255,.1);color:var(--blue);border:1px solid rgba(0,200,255,.2);}
+  .pill-green{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2);}
+  .pill-amber{background:rgba(255,179,0,.1);color:var(--amber);border:1px solid rgba(255,179,0,.2);}
+  .pill-red{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2);}
+  .pill-purple{background:rgba(123,47,247,.15);color:var(--purple2);border:1px solid rgba(168,85,247,.2);}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  /* ── STATS GRID ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .stat-value{font-size:28px;font-weight:700;color:var(--blue);}
+  .stat-label{font-size:11px;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+  .stat-card.red .stat-value{color:var(--red);}
+  .stat-card.green .stat-value{color:var(--green);}
+  .stat-card.amber .stat-value{color:var(--amber);}
+
+  /* ── SECTION TITLE ── */
+  .section-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px;}
+
+  /* ── TEMPLATE BUILDER ── */
+  .template-list{display:grid;gap:10px;}
+  .template-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s;}
+  .template-item:hover{border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.04);}
+  .template-item.selected{border-color:var(--blue);background:rgba(0,200,255,.06);box-shadow:0 0 16px rgba(0,200,255,.15);}
+  .template-name{font-size:14px;font-weight:600;}
+  .template-meta{font-size:11px;color:var(--text2);margin-top:3px;}
+
+  /* ── COMPONENT EDITOR ── */
+  .comp-editor{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .comp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .comp-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .comp-name{font-size:13px;font-weight:600;}
+  .comp-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+  .comp-options{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .opt-tag{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.15);border-radius:6px;padding:2px 8px;font-size:10px;color:var(--blue);}
+  .lifecycle-badge{background:rgba(255,179,0,.1);color:var(--amber);border:1px solid rgba(255,179,0,.25);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;}
+
+  /* ── TARIFF PANEL ── */
+  .tariff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+  .tariff-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+  .tariff-km{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .tariff-value{font-size:26px;font-weight:700;color:var(--green);}
+  .tariff-unit{font-size:11px;color:var(--text3);}
+
+  /* ── DIVIDER ── */
+  hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+  /* ── ALERT BOX ── */
+  .alert-box{padding:12px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;}
+  .alert-box.info{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.2);}
+  .alert-box.warning{background:rgba(255,179,0,.08);border:1px solid rgba(255,179,0,.2);}
+  .alert-box.danger{background:rgba(255,61,90,.08);border:1px solid rgba(255,61,90,.2);}
+  .alert-box p{font-size:12px;color:var(--text2);line-height:1.5;}
+
+  /* ── TOGGLE ── */
+  .toggle-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .toggle{width:40px;height:22px;background:var(--bg3);border-radius:11px;position:relative;transition:background .2s;border:1px solid var(--border);}
+  .toggle.on{background:var(--blue);}
+  .toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:3px;transition:left .2s;}
+  .toggle.on::after{left:19px;}
+  .toggle-label{font-size:13px;color:var(--text2);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">VIXSO</div>
+    <div class="logo-sub">ADMINISTRACIÓN</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPanel('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPanel('templates')">
+      <span class="nav-icon">🔧</span> Plantillas de Equipos
+    </div>
+    <div class="nav-item" onclick="showPanel('tariffs')">
+      <span class="nav-icon">💰</span> Tarifas de Viáticos
+    </div>
+    <div class="nav-item" onclick="showPanel('clients')">
+      <span class="nav-icon">🏥</span> Estado de Clientes
+    </div>
+    <div class="nav-item" onclick="showPanel('users')">
+      <span class="nav-icon">👥</span> Usuarios
+    </div>
+    <div class="nav-item" onclick="showPanel('reports')">
+      <span class="nav-icon">📈</span> Reportes
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar">DG</div>
+      <div>
+        <div class="user-name" style="color:var(--text);font-weight:600;">Dario Galliussi</div>
+        <div class="user-name">Administrador</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+      <span style="font-size:12px;color:var(--text2);">Bionuclear S.A.</span>
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: DASHBOARD                       -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel active" id="panel-dashboard">
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Plantillas activas</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-value">2</div>
+          <div class="stat-label">Alertas de componentes</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-value">1</div>
+          <div class="stat-label">Clientes sin servicio</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-value">10</div>
+          <div class="stat-label">Usuarios activos</div>
+        </div>
+      </div>
+
+      <div class="section-title">ACTIVIDAD RECIENTE</div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Técnico</th><th>Estado</th><th>Viático</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;color:var(--blue);">OS-00025</td>
+              <td>Hospital Italiano</td>
+              <td>Philips Ingenia 3T</td>
+              <td>D. Galliussi</td>
+              <td><span class="pill pill-green"><span class="dot"></span>Completado</span></td>
+              <td style="color:var(--green);">$20.405</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;color:var(--blue);">OS-00024</td>
+              <td>Sanatorio Güemes</td>
+              <td>Siemens SOMATOM</td>
+              <td>Técnico 2</td>
+              <td><span class="pill pill-blue"><span class="dot"></span>En Remoto</span></td>
+              <td style="color:var(--green);">$33.231</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;color:var(--blue);">OS-00023</td>
+              <td>Clínica IAMA</td>
+              <td>GE Infinia</td>
+              <td>Técnico 3</td>
+              <td><span class="pill pill-amber"><span class="dot"></span>Abierto</span></td>
+              <td style="color:var(--amber);">$19.822</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">ALERTAS ACTIVAS</div>
+      <div class="card" style="border-color:rgba(255,61,90,.25);background:rgba(255,61,90,.03);">
+        <table class="data-table">
+          <thead><tr><th>Componente</th><th>Equipo</th><th>Cliente</th><th>Estado</th><th>Vence / Venció</th><th>Acción</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">Coldhead / Compressor</td>
+              <td>Philips Achieva 1.5T</td>
+              <td>Hospital Italiano</td>
+              <td><span class="pill pill-red">🔴 Vencido</span></td>
+              <td style="color:var(--red);">Hace 5 meses</td>
+              <td><button class="btn btn-primary btn-sm">Crear orden</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Chiller Water Filter</td>
+              <td>Siemens SOMATOM</td>
+              <td>Hospital Argentino</td>
+              <td><span class="pill pill-amber">⏰ Próximo</span></td>
+              <td style="color:var(--amber);">En 24 días</td>
+              <td><button class="btn btn-ghost btn-sm">Programar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: PLANTILLAS DE EQUIPOS           -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-templates">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-size:13px;color:var(--text2);">Definí los modelos genéricos y sus componentes. Al registrar un equipo de cliente, el técnico elige el valor de cada componente desde esta lista.</p>
+        <button class="btn btn-primary" onclick="showNewTemplate()">+ Nueva Plantilla</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;">
+
+        <!-- Lista de plantillas -->
+        <div>
+          <div class="section-title">PLANTILLAS</div>
+          <div class="template-list">
+            <div class="template-item selected" onclick="selectTemplate(this,'mri1')">
+              <div>
+                <div class="template-name">Philips Achieva 1.5T</div>
+                <div class="template-meta">Resonancia · 28 componentes</div>
+              </div>
+              <span class="pill pill-blue" style="font-size:10px;">MRI</span>
+            </div>
+            <div class="template-item" onclick="selectTemplate(this,'mri2')">
+              <div>
+                <div class="template-name">Philips Ingenia 3T</div>
+                <div class="template-meta">Resonancia · 30 componentes</div>
+              </div>
+              <span class="pill pill-blue" style="font-size:10px;">MRI</span>
+            </div>
+            <div class="template-item" onclick="selectTemplate(this,'ct1')">
+              <div>
+                <div class="template-name">Siemens SOMATOM</div>
+                <div class="template-meta">Tomografía · 18 componentes</div>
+              </div>
+              <span class="pill pill-purple" style="font-size:10px;">CT</span>
+            </div>
+            <div style="margin-top:8px;">
+              <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="showNewTemplate()">+ Agregar plantilla</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor de componentes -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="section-title" style="margin:0;">COMPONENTES — Philips Achieva 1.5T</div>
+            <button class="btn btn-primary btn-sm" onclick="showAddComponent()">+ Componente</button>
+          </div>
+
+          <div class="comp-editor">
+            <div class="comp-list" id="comp-list">
+
+              <div class="comp-item">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">Magnet Type</div>
+                    <span style="font-size:10px;color:var(--text3);">Magneto · select</span>
+                  </div>
+                  <div class="comp-options">
+                    <span class="opt-tag">F2000</span><span class="opt-tag">4K</span><span class="opt-tag">3T_2</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="editComponent('Magnet Type')">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+              <div class="comp-item">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">RF Amplifier Type</div>
+                    <span style="font-size:10px;color:var(--text3);">RF System · select</span>
+                  </div>
+                  <div class="comp-options">
+                    <span class="opt-tag">S21_64</span><span class="opt-tag">S23_64</span><span class="opt-tag">S30_64</span><span class="opt-tag">8118_64</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+              <div class="comp-item">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">Gradient Amplifier Type</div>
+                    <span style="font-size:10px;color:var(--text3);">Gradientes · select</span>
+                  </div>
+                  <div class="comp-options">
+                    <span class="opt-tag">274-S</span><span class="opt-tag">274-D</span><span class="opt-tag">781</span><span class="opt-tag">787</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+              <div class="comp-item" style="border-color:rgba(255,179,0,.25);background:rgba(255,179,0,.03);">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">Coldhead / Compressor</div>
+                    <span style="font-size:10px;color:var(--text3);">Criogenia · text</span>
+                    <span class="lifecycle-badge">⏱ 36 meses</span>
+                  </div>
+                  <div class="comp-meta">Vida útil: 36 meses — o 8.000 hs de operación</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+              <div class="comp-item">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">IP Hospital LAN</div>
+                    <span style="font-size:10px;color:var(--text3);">Conectividad · text</span>
+                  </div>
+                  <div class="comp-meta">Texto libre — Ej: 192.168.1.45</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+              <div class="comp-item">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="comp-name">Último Backup</div>
+                    <span style="font-size:10px;color:var(--text3);">Conectividad · date</span>
+                  </div>
+                  <div class="comp-meta">Fecha del último respaldo del sistema</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">✏</button>
+                  <button class="btn btn-danger btn-sm">🗑</button>
+                </div>
+              </div>
+
+            </div><!-- /comp-list -->
+
+            <!-- Formulario agregar componente (oculto por default) -->
+            <div id="add-comp-form" style="display:none;background:rgba(0,0,0,.2);border-radius:10px;padding:16px;margin-top:8px;">
+              <p style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:14px;">NUEVO COMPONENTE</p>
+              <div class="form-row cols-2">
+                <div class="field"><label>Nombre del componente</label><input type="text" placeholder="Ej: RF Amplifier Type"/></div>
+                <div class="field"><label>Categoría</label>
+                  <select><option>RF System</option><option>Gradientes</option><option>Magneto</option><option>Criogenia</option><option>Conectividad</option><option>Patient Interface</option><option>Adquisición</option></select>
+                </div>
+              </div>
+              <div class="form-row cols-3">
+                <div class="field"><label>Tipo de campo</label>
+                  <select id="input-type-sel" onchange="toggleLifecycle()">
+                    <option value="select">Lista de opciones</option>
+                    <option value="text">Texto libre</option>
+                    <option value="date">Fecha</option>
+                    <option value="number">Número</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tiene vida útil</label>
+                  <div class="toggle-wrap" style="margin-top:10px;" onclick="toggleLifecycleCheck(this)">
+                    <div class="toggle" id="lifecycle-toggle"></div>
+                    <span class="toggle-label">No</span>
+                  </div>
+                </div>
+                <div class="field" id="lifespan-field" style="display:none;">
+                  <label>Vida útil (meses)</label>
+                  <input type="number" placeholder="Ej: 36"/>
+                </div>
+              </div>
+
+              <!-- Opciones (solo para tipo select) -->
+              <div id="options-section">
+                <p style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px;">OPCIONES POSIBLES</p>
+                <div id="options-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                  <span class="opt-tag" style="cursor:pointer;">S21_64 ✕</span>
+                  <span class="opt-tag" style="cursor:pointer;">S23_64 ✕</span>
+                  <span class="opt-tag" style="cursor:pointer;">S30_64 ✕</span>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <input id="new-option-input" type="text" class="field" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;" placeholder="Nueva opción..."/>
+                  <button class="btn btn-ghost btn-sm" onclick="addOption()">+ Agregar</button>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;margin-top:14px;">
+                <button class="btn btn-primary">💾 Guardar componente</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('add-comp-form').style.display='none'">Cancelar</button>
+              </div>
+            </div>
+
+          </div><!-- /comp-editor -->
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: TARIFAS DE VIÁTICOS             -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-tariffs">
+
+      <div class="alert-box info">
+        <span>ℹ️</span>
+        <p>Las tarifas se guardan con fecha de vigencia. El sistema usa siempre la más reciente. El historial completo queda registrado para auditoría.</p>
+      </div>
+
+      <!-- Tarifa vigente -->
+      <div class="section-title">TARIFA VIGENTE</div>
+      <div class="tariff-grid">
+        <div class="tariff-card">
+          <div class="tariff-km">Hasta 150 km</div>
+          <div class="tariff-value" id="display-t1">$583</div>
+          <div class="tariff-unit">por km</div>
+        </div>
+        <div class="tariff-card">
+          <div class="tariff-km">151 a 400 km</div>
+          <div class="tariff-value" id="display-t2">$279</div>
+          <div class="tariff-unit">por km</div>
+        </div>
+        <div class="tariff-card">
+          <div class="tariff-km">Más de 400 km</div>
+          <div class="tariff-value" id="display-t3">$240</div>
+          <div class="tariff-unit">por km</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:20px;">Vigente desde: 28 de Enero de 2026</p>
+
+      <!-- Actualizar tarifas -->
+      <div class="section-title">ACTUALIZAR TARIFAS</div>
+      <div class="card">
+        <div class="form-row cols-3">
+          <div class="field">
+            <label>Hasta 150 km ($/km)</label>
+            <input type="number" id="t1" placeholder="583" value="583"/>
+          </div>
+          <div class="field">
+            <label>151 a 400 km ($/km)</label>
+            <input type="number" id="t2" placeholder="279" value="279"/>
+          </div>
+          <div class="field">
+            <label>Más de 400 km ($/km)</label>
+            <input type="number" id="t3" placeholder="240" value="240"/>
+          </div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="field">
+            <label>Fecha de vigencia</label>
+            <input type="date" id="t-date"/>
+          </div>
+          <div class="field">
+            <label>Notas (opcional)</label>
+            <input type="text" placeholder="Ej: Actualización Junio 2026"/>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveTariff()">💾 Guardar nuevas tarifas</button>
+      </div>
+
+      <!-- Simulador -->
+      <div class="section-title">SIMULADOR DE VIÁTICO</div>
+      <div class="card">
+        <div style="display:flex;gap:14px;align-items:flex-end;">
+          <div class="field" style="flex:1;">
+            <label>Distancia (km)</label>
+            <input type="number" id="sim-km" placeholder="Ej: 110" oninput="simulate()"/>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;">VIÁTICO CALCULADO</p>
+            <div id="sim-result" style="font-size:28px;font-weight:700;color:var(--green);">—</div>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;">MEDIO VIÁTICO</p>
+            <div id="sim-half" style="font-size:28px;font-weight:700;color:var(--amber);">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial -->
+      <div class="section-title">HISTORIAL DE TARIFAS</div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Vigente desde</th><th>≤150 km</th><th>151–400 km</th><th>>400 km</th><th>Notas</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>28 Ene 2026</td><td style="color:var(--green);">$583/km</td><td style="color:var(--green);">$279/km</td><td style="color:var(--green);">$240/km</td>
+              <td style="color:var(--text2);">Tarifas iniciales del sistema</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: ESTADO DE CLIENTES              -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-clients">
+
+      <div class="alert-box warning">
+        <span>⚠️</span>
+        <p>Los clientes marcados como "Sin servicio", "Con deuda" u "Otro proveedor" generarán una alerta visible al crear una orden de trabajo para ese equipo.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="filterClients('all')">Todos</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterClients('activo')"><span style="color:var(--green);">●</span> Activos</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterClients('sin_servicio')"><span style="color:var(--red);">●</span> Sin servicio</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterClients('deuda')"><span style="color:var(--amber);">●</span> Con deuda</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterClients('otro_proveedor')"><span style="color:var(--text2);">●</span> Otro proveedor</button>
+      </div>
+
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr><th>Cliente</th><th>Ciudad</th><th>Km</th><th>Equipos</th><th>Estado</th><th>Motivo</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">Hospital Italiano</td><td>Buenos Aires</td><td>32</td><td>2</td>
+              <td><span class="pill pill-green"><span class="dot"></span>Activo</span></td>
+              <td style="color:var(--text3);">—</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Hospital Italiano','activo')">Cambiar</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Clínica Mysler</td><td>Buenos Aires</td><td>35</td><td>1</td>
+              <td><span class="pill pill-red"><span class="dot"></span>Sin servicio</span></td>
+              <td style="font-size:12px;color:var(--text2);">Lo mantiene Siemens HealthService</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Clínica Mysler','sin_servicio')">Cambiar</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Sanatorio Güemes</td><td>Buenos Aires</td><td>29</td><td>3</td>
+              <td><span class="pill pill-amber"><span class="dot"></span>Con deuda</span></td>
+              <td style="font-size:12px;color:var(--text2);">Deuda pendiente desde Feb 2026</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Sanatorio Güemes','deuda')">Cambiar</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Favaloro</td><td>Buenos Aires</td><td>18</td><td>1</td>
+              <td><span class="pill pill-green"><span class="dot"></span>Activo</span></td>
+              <td style="color:var(--text3);">—</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Favaloro','activo')">Cambiar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal estado cliente -->
+      <div id="status-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:420px;">
+          <h3 style="margin-bottom:16px;" id="modal-client-name">Hospital Italiano</h3>
+          <div class="field" style="margin-bottom:14px;">
+            <label>Estado del cliente</label>
+            <select id="modal-status">
+              <option value="activo">✅ Activo — en servicio</option>
+              <option value="sin_servicio">🚫 Sin servicio — lo mantiene otro</option>
+              <option value="deuda">⚠️ Con deuda — pagos pendientes</option>
+              <option value="otro_proveedor">🔄 Otro proveedor — derivado</option>
+              <option value="inactivo">⛔ Inactivo — baja definitiva</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label>Motivo o detalle</label>
+            <textarea id="modal-reason" placeholder="Ej: Lo mantiene Siemens HealthService desde Marzo 2026..."></textarea>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="saveStatus()">💾 Guardar</button>
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: USUARIOS                        -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-users">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>USUARIOS DEL SISTEMA</span>
+        <button class="btn btn-primary btn-sm">+ Nuevo usuario</button>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Legajo</th><th>Nombre</th><th>Rol</th><th>Especialidades</th><th>Teléfono</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>001</td><td style="font-weight:600;">Dario Galliussi</td><td><span class="pill pill-purple">Admin</span></td><td>Todas</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>002</td><td style="font-weight:600;">Jefe 1</td><td><span class="pill pill-blue">Jefe</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>004</td><td style="font-weight:600;">Técnico 1</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>005</td><td style="font-weight:600;">Técnico 2</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>006</td><td style="font-weight:600;">Técnico 3</td><td><span class="pill pill-amber">Ingeniero</span></td><td>CT · Gamma</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>007</td><td style="font-weight:600;">Técnico 4</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>008</td><td style="font-weight:600;">Técnico 5</td><td><span class="pill pill-amber">Ingeniero</span></td><td>Gamma</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>009</td><td style="font-weight:600;">Técnico 6</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>010</td><td style="font-weight:600;">Técnico 7</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+            <tr><td>011</td><td style="font-weight:600;">Administrativo</td><td><span class="pill pill-amber">Ingeniero</span></td><td>—</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: REPORTES                        -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-reports">
+      <div class="form-row cols-3" style="margin-bottom:16px;">
+        <div class="field"><label>Desde</label><input type="date" id="r-from" value="2026-05-01"/></div>
+        <div class="field"><label>Hasta</label><input type="date" id="r-to" value="2026-05-31"/></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary" style="width:100%;" onclick="runReport()">🔍 Generar reporte</button></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="r-total">12</div><div class="stat-label">Órdenes del período</div></div>
+        <div class="stat-card green"><div class="stat-value" id="r-completed">9</div><div class="stat-label">Completadas</div></div>
+        <div class="stat-card amber"><div class="stat-value" id="r-remote">847</div><div class="stat-label">Min. soporte remoto</div></div>
+        <div class="stat-card"><div class="stat-value" id="r-gastos" style="font-size:18px;">$124.890</div><div class="stat-label">Gastos rendidos</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <div class="section-title">POR TIPO DE SERVICIO</div>
+          <div class="card">
+            <table class="data-table">
+              <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
+              <tbody>
+                <tr><td>Correctivo</td><td style="color:var(--red);">5</td></tr>
+                <tr><td>Preventivo</td><td style="color:var(--green);">3</td></tr>
+                <tr><td>Abono</td><td style="color:var(--blue);">3</td></tr>
+                <tr><td>Garantía</td><td style="color:var(--amber);">1</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="section-title">POR INGENIERO</div>
+          <div class="card">
+            <table class="data-table">
+              <thead><tr><th>Técnico</th><th>Órdenes</th><th>Min. remoto</th><th>Viáticos</th></tr></thead>
+              <tbody>
+                <tr><td>D. Galliussi</td><td>4</td><td>210</td><td style="color:var(--green);">$81.620</td></tr>
+                <tr><td>Técnico 1</td><td>3</td><td>180</td><td style="color:var(--green);">$57.915</td></tr>
+                <tr><td>Técnico 2</td><td>3</td><td>290</td><td style="color:var(--green);">$59.748</td></tr>
+                <tr><td>Técnico 3</td><td>2</td><td>167</td><td style="color:var(--green);">$39.644</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ── NAVIGATION ──
+const panels = ['dashboard','templates','tariffs','clients','users','reports'];
+const titles = {
+  dashboard: 'Dashboard',
+  templates: 'Plantillas de Equipos',
+  tariffs: 'Tarifas de Viáticos',
+  clients: 'Estado de Clientes',
+  users: 'Usuarios del Sistema',
+  reports: 'Reportes',
+};
+
+function showPanel(id) {
+  panels.forEach(p => {
+    document.getElementById('panel-'+p).classList.remove('active');
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item')[panels.indexOf(id)].classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id];
+}
+
+// ── TEMPLATE SELECTION ──
+function selectTemplate(el, id) {
+  document.querySelectorAll('.template-item').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── ADD COMPONENT ──
+function showAddComponent() {
+  const f = document.getElementById('add-comp-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function showNewTemplate() {
+  showPanel('templates');
+  alert('Funcionalidad: crear plantilla nueva. En producción abre un modal con: Marca, Modelo, Modalidad.');
+}
+
+function editComponent(name) {
+  alert('Editar componente: ' + name + '\nEn producción abre el formulario pre-cargado con los valores actuales.');
+}
+
+function toggleLifecycle() {
+  const type = document.getElementById('input-type-sel').value;
+}
+
+function toggleLifecycleCheck(el) {
+  const toggle = el.querySelector('.toggle');
+  const label  = el.querySelector('.toggle-label');
+  const field  = document.getElementById('lifespan-field');
+  toggle.classList.toggle('on');
+  const isOn = toggle.classList.contains('on');
+  label.textContent = isOn ? 'Sí' : 'No';
+  field.style.display = isOn ? 'block' : 'none';
+}
+
+function addOption() {
+  const input = document.getElementById('new-option-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const tag = document.createElement('span');
+  tag.className = 'opt-tag';
+  tag.style.cursor = 'pointer';
+  tag.textContent = val + ' ✕';
+  tag.onclick = () => tag.remove();
+  document.getElementById('options-list').appendChild(tag);
+  input.value = '';
+}
+
+// ── TARIFF SIMULATOR ──
+function simulate() {
+  const km = parseInt(document.getElementById('sim-km').value) || 0;
+  const t1 = parseFloat(document.getElementById('t1').value) || 583;
+  const t2 = parseFloat(document.getElementById('t2').value) || 279;
+  const t3 = parseFloat(document.getElementById('t3').value) || 240;
+  let v = 0;
+  if (km <= 0) { document.getElementById('sim-result').textContent = '—'; document.getElementById('sim-half').textContent = '—'; return; }
+  if (km <= 150)      v = km * t1;
+  else if (km <= 400) v = km * t2;
+  else                v = km * t3;
+  document.getElementById('sim-result').textContent = '$' + v.toLocaleString('es-AR');
+  document.getElementById('sim-half').textContent   = '$' + (v/2).toLocaleString('es-AR');
+}
+
+function saveTariff() {
+  const t1 = document.getElementById('t1').value;
+  const t2 = document.getElementById('t2').value;
+  const t3 = document.getElementById('t3').value;
+  const d  = document.getElementById('t-date').value;
+  if (!t1 || !t2 || !t3 || !d) { alert('Completá todos los campos.'); return; }
+  document.getElementById('display-t1').textContent = '$' + parseInt(t1).toLocaleString();
+  document.getElementById('display-t2').textContent = '$' + parseInt(t2).toLocaleString();
+  document.getElementById('display-t3').textContent = '$' + parseInt(t3).toLocaleString();
+  alert('✅ Tarifas guardadas. En producción se envía a: POST /config/tariff');
+}
+
+// ── CLIENT STATUS ──
+function openStatusModal(name, status) {
+  document.getElementById('modal-client-name').textContent = name;
+  document.getElementById('modal-status').value = status;
+  document.getElementById('status-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('status-modal').style.display = 'none';
+}
+
+function saveStatus() {
+  const status = document.getElementById('modal-status').value;
+  const reason = document.getElementById('modal-reason').value;
+  closeModal();
+  alert(`✅ Estado actualizado: ${status}\nEn producción: PATCH /clients/{id}/status`);
+}
+
+function filterClients(f) {
+  // En producción filtra la tabla
+}
+
+// ── REPORTS ──
+function runReport() {
+  alert('✅ En producción: GET /reports/summary?date_from=...&date_to=...\nDevuelve órdenes, horas remotas y gastos del período.');
+}
+
+// Init: set today as default date for tariff
+document.getElementById('t-date').valueAsDate = new Date();
+</script>
+</body>
+</html>

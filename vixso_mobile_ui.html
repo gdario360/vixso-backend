@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>VIXSO — App Técnico</title>
+<style>
+  /* ── RESET & BASE ── */
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root {
+    --bg:        #060b17;
+    --bg2:       #0c1426;
+    --bg3:       #111d35;
+    --card:      rgba(255,255,255,0.04);
+    --card-b:    rgba(255,255,255,0.08);
+    --blue:      #00c8ff;
+    --blue2:     #0078d4;
+    --purple:    #7b2ff7;
+    --purple2:   #a855f7;
+    --green:     #00e676;
+    --amber:     #ffb300;
+    --red:       #ff3d5a;
+    --text:      #e2eeff;
+    --text2:     #7a9ab8;
+    --text3:     #3d5a7a;
+    --border:    rgba(0,200,255,0.12);
+    --glow-b:    0 0 20px rgba(0,200,255,0.3);
+    --glow-p:    0 0 20px rgba(123,47,247,0.4);
+    --glow-g:    0 0 16px rgba(0,230,118,0.35);
+    --glow-r:    0 0 16px rgba(255,61,90,0.4);
+    --radius:    16px;
+    --nav-h:     72px;
+  }
+  html, body { height:100%; background:#000; font-family:'Segoe UI',system-ui,sans-serif; }
+
+  /* ── PHONE SHELL ── */
+  .shell {
+    width:390px; height:844px; margin:20px auto;
+    background:var(--bg); border-radius:44px; overflow:hidden; position:relative;
+    box-shadow:0 0 0 8px #1a1a1a, 0 0 0 10px #111, 0 30px 80px rgba(0,0,0,.9),
+               inset 0 0 60px rgba(0,200,255,0.03);
+    display:flex; flex-direction:column;
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    height:44px; background:var(--bg); display:flex;
+    align-items:center; justify-content:space-between;
+    padding:0 24px; flex-shrink:0;
+  }
+  .statusbar .time { font-size:15px; font-weight:600; color:var(--text); }
+  .statusbar .icons { display:flex; gap:6px; align-items:center; color:var(--text); font-size:12px; }
+  .signal { display:flex; gap:2px; align-items:flex-end; }
+  .signal span { width:3px; background:var(--text); border-radius:1px; }
+  .signal span:nth-child(1){height:4px;}
+  .signal span:nth-child(2){height:7px;}
+  .signal span:nth-child(3){height:10px;}
+  .signal span:nth-child(4){height:13px;}
+  .battery { width:22px; height:11px; border:1.5px solid var(--text); border-radius:2px; position:relative; display:flex; align-items:center; padding:1.5px; }
+  .battery::after { content:''; position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2px; height:5px; background:var(--text); border-radius:0 1px 1px 0; }
+  .battery-fill { height:100%; width:75%; background:var(--text); border-radius:1px; }
+
+  /* ── SCREENS ── */
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; transition:opacity .3s, transform .3s; }
+  .screen.hidden { opacity:0; pointer-events:none; transform:translateX(30px); }
+  .screen.slide-left { transform:translateX(-30px); }
+
+  /* ── SCROLLABLE CONTENT ── */
+  .scroll-body { flex:1; overflow-y:auto; padding-bottom:calc(var(--nav-h) + 8px); }
+  .scroll-body::-webkit-scrollbar { display:none; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    height:var(--nav-h); background:rgba(6,11,23,.95); backdrop-filter:blur(20px);
+    border-top:1px solid var(--border); display:flex; align-items:center;
+    justify-content:space-around; padding:0 8px; flex-shrink:0; position:absolute;
+    bottom:0; left:0; right:0;
+  }
+  .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 16px; cursor:pointer; position:relative; }
+  .nav-item .nav-icon { font-size:22px; }
+  .nav-item .nav-label { font-size:10px; color:var(--text3); font-weight:500; letter-spacing:.5px; }
+  .nav-item.active .nav-label { color:var(--blue); }
+  .nav-item.active .nav-icon { filter:drop-shadow(0 0 6px var(--blue)); }
+  .nav-badge { position:absolute; top:4px; right:10px; background:var(--red); color:#fff; font-size:9px; font-weight:700; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1.5px solid var(--bg); }
+
+  /* ── TYPOGRAPHY ── */
+  h1 { font-size:24px; font-weight:700; color:var(--text); }
+  h2 { font-size:18px; font-weight:600; color:var(--text); }
+  h3 { font-size:14px; font-weight:600; color:var(--text); }
+  p  { font-size:13px; color:var(--text2); line-height:1.5; }
+
+  /* ── CARDS ── */
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px; margin:0 16px 12px;
+  }
+  .card.glow-blue { box-shadow:var(--glow-b); border-color:rgba(0,200,255,.25); }
+  .card.glow-red  { box-shadow:var(--glow-r); border-color:rgba(255,61,90,.3); }
+  .card.glow-green{ box-shadow:var(--glow-g); border-color:rgba(0,230,118,.3); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    border:none; border-radius:14px; font-size:15px; font-weight:600;
+    cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-primary {
+    background:linear-gradient(135deg, var(--blue2), var(--purple));
+    color:#fff; padding:16px; box-shadow:0 4px 20px rgba(0,200,255,.25);
+  }
+  .btn-primary:active { transform:scale(.97); }
+  .btn-ghost {
+    background:var(--card-b); color:var(--text); padding:12px 16px;
+    border:1px solid var(--border);
+  }
+  .btn-danger { background:linear-gradient(135deg,#c00,var(--red)); color:#fff; padding:16px; box-shadow:0 4px 20px rgba(255,61,90,.3); }
+  .btn-success { background:linear-gradient(135deg,#008f4c,var(--green)); color:#000; padding:16px; font-weight:700; box-shadow:0 4px 20px rgba(0,230,118,.3); }
+  .btn-full { width:100%; }
+  .btn-sm { padding:8px 14px; font-size:13px; border-radius:10px; }
+
+  /* ── STATUS PILLS ── */
+  .pill {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.3px;
+  }
+  .pill-blue   { background:rgba(0,200,255,.12); color:var(--blue); border:1px solid rgba(0,200,255,.2); }
+  .pill-green  { background:rgba(0,230,118,.12); color:var(--green); border:1px solid rgba(0,230,118,.2); }
+  .pill-amber  { background:rgba(255,179,0,.12); color:var(--amber); border:1px solid rgba(255,179,0,.2); }
+  .pill-red    { background:rgba(255,61,90,.12); color:var(--red); border:1px solid rgba(255,61,90,.25); }
+  .pill-purple { background:rgba(123,47,247,.15); color:var(--purple2); border:1px solid rgba(168,85,247,.2); }
+  .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+  /* ── DIVIDER ── */
+  .divider { height:1px; background:var(--border); margin:12px 16px; }
+
+  /* ── INPUT ── */
+  .input-group { margin-bottom:16px; }
+  .input-group label { display:block; font-size:11px; font-weight:600; color:var(--text2); letter-spacing:.8px; text-transform:uppercase; margin-bottom:6px; }
+  .input-field {
+    width:100%; background:rgba(255,255,255,.05); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; color:var(--text); font-size:15px;
+    outline:none; transition:border-color .2s;
+  }
+  .input-field:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(0,200,255,.1); }
+  .input-field::placeholder { color:var(--text3); }
+  select.input-field { appearance:none; }
+
+  /* ── LOGO SVG ── */
+  .logo-vixso { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .logo-vixso svg { filter:drop-shadow(0 0 18px rgba(0,200,255,.7)) drop-shadow(0 0 8px rgba(123,47,247,.5)); }
+  .logo-text { font-size:32px; font-weight:900; letter-spacing:4px; color:var(--text);
+    background:linear-gradient(135deg, #fff 0%, var(--blue) 50%, var(--purple2) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .logo-tagline { font-size:10px; letter-spacing:3px; color:var(--text2); text-transform:uppercase; }
+
+  /* ── HEADER ── */
+  .screen-header {
+    padding:16px 20px 12px; display:flex; align-items:center; gap:12px; flex-shrink:0;
+  }
+  .back-btn { width:36px; height:36px; border-radius:10px; background:var(--card-b); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; flex-shrink:0; }
+
+  /* ── TIMER DISPLAY ── */
+  .timer-display {
+    font-size:56px; font-weight:100; letter-spacing:4px; color:var(--blue);
+    text-align:center; font-variant-numeric:tabular-nums; font-family:'Courier New', monospace;
+    text-shadow:0 0 30px rgba(0,200,255,.6), 0 0 60px rgba(0,200,255,.3);
+  }
+  .timer-active { animation:pulse-glow 2s infinite; }
+  @keyframes pulse-glow {
+    0%,100% { text-shadow:0 0 30px rgba(0,200,255,.6), 0 0 60px rgba(0,200,255,.3); }
+    50%      { text-shadow:0 0 50px rgba(0,200,255,.9), 0 0 100px rgba(0,200,255,.5); }
+  }
+
+  /* ── TOOL SELECTOR ── */
+  .tool-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .tool-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    padding:14px 8px; text-align:center; cursor:pointer; transition:all .2s;
+  }
+  .tool-card.selected { border-color:var(--blue); background:rgba(0,200,255,.08); box-shadow:var(--glow-b); }
+  .tool-card .tool-icon { font-size:24px; margin-bottom:6px; }
+  .tool-card .tool-name { font-size:11px; color:var(--text2); font-weight:600; }
+
+  /* ── EXPENSE ROW ── */
+  .expense-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+  .expense-row:last-child { border-bottom:none; }
+  .expense-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; margin-right:10px; }
+  .expense-info { flex:1; }
+  .expense-name { font-size:13px; font-weight:600; color:var(--text); }
+  .expense-sub  { font-size:11px; color:var(--text2); }
+  .expense-amount { font-size:14px; font-weight:700; color:var(--text); }
+
+  /* ── STATS ROW ── */
+  .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 16px 12px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; text-align:center; }
+  .stat-value { font-size:22px; font-weight:700; color:var(--blue); }
+  .stat-label { font-size:10px; color:var(--text2); margin-top:2px; text-transform:uppercase; letter-spacing:.5px; }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner { margin:0 16px 12px; background:linear-gradient(135deg,rgba(255,61,90,.12),rgba(255,61,90,.06)); border:1px solid rgba(255,61,90,.3); border-radius:14px; padding:12px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .alert-icon { font-size:24px; }
+  .alert-text .alert-title { font-size:13px; font-weight:700; color:var(--red); }
+  .alert-text .alert-sub { font-size:11px; color:var(--text2); }
+
+  /* ── TICKET CARD ── */
+  .ticket-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:0 16px 10px; cursor:pointer; transition:all .2s; }
+  .ticket-card:active { transform:scale(.98); }
+  .ticket-card.urgent { border-color:rgba(255,179,0,.3); background:rgba(255,179,0,.04); }
+  .ticket-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .ticket-order { font-size:11px; color:var(--text2); font-weight:600; letter-spacing:.5px; }
+  .ticket-client { font-size:15px; font-weight:700; color:var(--text); margin-top:2px; }
+  .ticket-equip  { font-size:12px; color:var(--blue); margin-top:3px; }
+  .ticket-footer { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+  .ticket-time   { font-size:11px; color:var(--text3); }
+
+  /* ── LIFECYCLE ITEM ── */
+  .lifecycle-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .lifecycle-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .lifecycle-info { flex:1; }
+  .lifecycle-name { font-size:13px; font-weight:600; color:var(--text); }
+  .lifecycle-date { font-size:11px; color:var(--text2); margin-top:2px; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar { height:4px; background:rgba(255,255,255,.08); border-radius:2px; margin-top:8px; }
+  .progress-fill { height:100%; border-radius:2px; transition:width .5s; }
+
+  /* ── SIGNATURE PAD ── */
+  .sig-pad { width:100%; height:120px; background:rgba(255,255,255,.03); border:1px dashed rgba(0,200,255,.3); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--text3); font-size:13px; cursor:pointer; margin-top:8px; }
+  .sig-done { border-style:solid; border-color:rgba(0,230,118,.4); color:var(--green); }
+
+  /* ── SECTION TITLE ── */
+  .section-title { padding:8px 16px 8px; font-size:11px; font-weight:700; color:var(--text2); letter-spacing:1px; text-transform:uppercase; }
+
+  /* ── CIRCUIT BG ── */
+  .circuit-bg { position:absolute; inset:0; opacity:.04; pointer-events:none; overflow:hidden; }
+
+  /* ── SCAN LINE ── */
+  @keyframes scan { from{top:44px;} to{top:100%;} }
+  .scan-line { position:absolute; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(0,200,255,.6),transparent); animation:scan 3s linear infinite; pointer-events:none; }
+
+</style>
+</head>
+<body>
+
+<div class="shell" id="shell">
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="time" id="clock">09:41</div>
+    <div class="icons">
+      <div class="signal"><span></span><span></span><span></span><span></span></div>
+      <span style="font-size:11px">5G</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 1: LOGIN                        -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen" id="s-login" style="background:var(--bg); padding:0;">
+    <div class="scan-line"></div>
+
+    <!-- Circuit decoration -->
+    <svg class="circuit-bg" viewBox="0 0 390 800" preserveAspectRatio="none">
+      <g stroke="#00c8ff" stroke-width="1" fill="none">
+        <path d="M0,200 L80,200 L80,240 L150,240"/><circle cx="150" cy="240" r="3" fill="#00c8ff"/>
+        <path d="M390,150 L310,150 L310,190 L240,190"/><circle cx="240" cy="190" r="3" fill="#00c8ff"/>
+        <path d="M0,600 L60,600 L60,560 L120,560 L120,530"/><circle cx="120" cy="530" r="3" fill="#00c8ff"/>
+        <path d="M390,650 L330,650 L330,620 L280,620"/><circle cx="280" cy="620" r="3" fill="#00c8ff"/>
+        <path d="M180,0 L180,80"/><path d="M210,0 L210,60"/>
+        <path d="M180,800 L180,740"/><path d="M220,800 L220,760"/>
+      </g>
+    </svg>
+
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px;">
+
+      <!-- Logo -->
+      <div class="logo-vixso" style="margin-bottom:48px;">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <!-- Glow filter -->
+          <defs>
+            <radialGradient id="brainGlow" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#a855f7" stop-opacity=".9"/>
+              <stop offset="100%" stop-color="#00c8ff" stop-opacity=".3"/>
+            </radialGradient>
+            <filter id="gf"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <linearGradient id="xGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#c0d8f0"/>
+              <stop offset="50%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#7090b0"/>
+            </linearGradient>
+          </defs>
+          <!-- Brain circle -->
+          <ellipse cx="40" cy="32" rx="26" ry="22" fill="url(#brainGlow)" opacity=".7"/>
+          <!-- Circuit lines -->
+          <g stroke="#00c8ff" stroke-width=".8" opacity=".6">
+            <line x1="14" y1="32" x2="4" y2="32"/><circle cx="4" cy="32" r="1.5" fill="#00c8ff"/>
+            <line x1="66" y1="32" x2="76" y2="32"/><circle cx="76" cy="32" r="1.5" fill="#00c8ff"/>
+            <line x1="40" y1="10" x2="40" y2="2"/><circle cx="40" cy="2" r="1.5" fill="#00c8ff"/>
+            <line x1="18" y1="18" x2="10" y2="10"/><line x1="62" y1="18" x2="70" y2="10"/>
+          </g>
+          <!-- X shape (two triangles) -->
+          <g filter="url(#gf)">
+            <polygon points="40,14 55,42 40,36 25,42" fill="url(#xGrad)" opacity=".95"/>
+            <polygon points="40,58 55,30 40,36 25,30" fill="url(#xGrad)" opacity=".95"/>
+          </g>
+          <!-- Center glow -->
+          <circle cx="40" cy="36" r="5" fill="#00c8ff" opacity=".9"/>
+          <circle cx="40" cy="36" r="2" fill="#fff"/>
+          <!-- Connector lines to X tips -->
+          <g stroke="#00c8ff" stroke-width="1" opacity=".5">
+            <line x1="40" y1="36" x2="40" y2="14"/>
+            <line x1="40" y1="36" x2="55" y2="42"/>
+            <line x1="40" y1="36" x2="25" y2="42"/>
+          </g>
+        </svg>
+        <div class="logo-text">VIXSO</div>
+        <div class="logo-tagline">Simplify Your World</div>
+      </div>
+
+      <!-- Form -->
+      <div style="width:100%;">
+        <div class="input-group">
+          <label>Usuario</label>
+          <input class="input-field" type="email" placeholder="nombre@bionuclear.com" value="d.galliussi@bionuclear.com"/>
+        </div>
+        <div class="input-group">
+          <label>Contraseña</label>
+          <input class="input-field" type="password" placeholder="••••••••" value="••••••••"/>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="go('s-dashboard')">
+          <span>🔐</span> Ingresar al sistema
+        </button>
+      </div>
+
+      <p style="margin-top:32px; font-size:11px; color:var(--text3); text-align:center; letter-spacing:.5px;">
+        VIXSO v1.0 · Bionuclear S.A.<br>Plataforma Médico-Industrial
+      </p>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 2: DASHBOARD                    -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-dashboard">
+
+    <!-- Header -->
+    <div style="padding:12px 20px 8px; display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <p style="font-size:11px; color:var(--text2); letter-spacing:.5px;">BIENVENIDO</p>
+        <h2 style="margin-top:2px;">Dario G. 👋</h2>
+      </div>
+      <div style="position:relative; cursor:pointer;" onclick="go('s-alerts')">
+        <div style="width:42px;height:42px;background:var(--card-b);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔔</div>
+        <div style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);">2</div>
+      </div>
+    </div>
+
+    <div class="scroll-body">
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Órdenes hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--green);">127</div>
+          <div class="stat-label">Min. remoto</div>
+        </div>
+        <div class="stat-card" onclick="go('s-alerts')" style="cursor:pointer;">
+          <div class="stat-value" style="color:var(--red);">2</div>
+          <div class="stat-label">Alertas</div>
+        </div>
+      </div>
+
+      <!-- Alert banner -->
+      <div class="alert-banner" onclick="go('s-alerts')">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text">
+          <div class="alert-title">2 componentes requieren atención</div>
+          <div class="alert-sub">Coldhead vencido · Philips Ingenia 3T — Italiano</div>
+        </div>
+        <div style="color:var(--text3); font-size:18px;">›</div>
+      </div>
+
+      <!-- Active ticket -->
+      <div class="section-title">EN PROGRESO</div>
+      <div class="ticket-card glow-blue" onclick="go('s-order')">
+        <div class="ticket-header">
+          <div>
+            <div class="ticket-order">OS-00023</div>
+            <div class="ticket-client">Sanatorio Güemes</div>
+            <div class="ticket-equip">⚡ Philips Ingenia 3T — S/N: PH38291A</div>
+          </div>
+          <div class="pill pill-blue"><div class="dot"></div> Remoto</div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);">Error de gradientes en secuencia T2. Soporte remoto en curso.</p>
+        <div class="ticket-footer">
+          <div class="ticket-time">⏱ Hace 42 min</div>
+          <div style="font-size:12px;color:var(--blue);font-weight:600;">Ver detalle ›</div>
+        </div>
+      </div>
+
+      <!-- Pending tickets -->
+      <div class="section-title">PENDIENTES</div>
+
+      <div class="ticket-card" onclick="go('s-order')">
+        <div class="ticket-header">
+          <div>
+            <div class="ticket-order">OS-00024</div>
+            <div class="ticket-client">Hospital Italiano</div>
+            <div class="ticket-equip">🔬 Siemens SOMATOM — S/N: SI09832C</div>
+          </div>
+          <div class="pill pill-amber"><div class="dot"></div> Abierto</div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);">Preventivo anual. Revisión de tubo y filtros.</p>
+        <div class="ticket-footer">
+          <div class="ticket-time">📅 Hoy 14:00</div>
+          <div class="pill pill-purple" style="font-size:11px;">Garantía</div>
+        </div>
+      </div>
+
+      <div class="ticket-card urgent" onclick="go('s-order')">
+        <div class="ticket-header">
+          <div>
+            <div class="ticket-order">OS-00025</div>
+            <div class="ticket-client">Clínica IAMA</div>
+            <div class="ticket-equip">☢️ GE Infinia — S/N: GE77201B</div>
+          </div>
+          <div class="pill pill-red"><div class="dot"></div> Urgente</div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);">Cámara gamma fuera de servicio. Falla en cabezal 2.</p>
+        <div class="ticket-footer">
+          <div class="ticket-time">🚨 Crítico</div>
+          <div class="pill pill-amber" style="font-size:11px;">Correctivo</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">ÓRDENES</div>
+      </div>
+      <div class="nav-item" onclick="go('s-equipment')">
+        <div class="nav-icon">🔬</div>
+        <div class="nav-label">EQUIPOS</div>
+      </div>
+      <div class="nav-item" onclick="go('s-alerts')">
+        <div class="nav-icon">🔔</div>
+        <div class="nav-label">ALERTAS</div>
+        <div class="nav-badge">2</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">👤</div>
+        <div class="nav-label">PERFIL</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 3: ORDEN DETAIL                 -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-order">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-dashboard')">←</div>
+      <div>
+        <p style="font-size:11px;color:var(--text2);">OS-00023 · Correctivo</p>
+        <h2>Sanatorio Güemes</h2>
+      </div>
+      <div class="pill pill-blue" style="margin-left:auto;"><div class="dot"></div> Remoto</div>
+    </div>
+
+    <div class="scroll-body">
+
+      <!-- Equipment card -->
+      <div class="card glow-blue">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--blue2),var(--purple));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;">⚡</div>
+          <div>
+            <h3>Philips Ingenia 3T</h3>
+            <p style="font-size:11px;margin-top:2px;">S/N: PH38291A · MIB-CBO</p>
+            <div style="margin-top:4px;display:flex;gap:6px;">
+              <span class="pill pill-purple" style="font-size:10px;">Resonancia</span>
+              <span class="pill pill-green" style="font-size:10px;">IP: 192.168.1.45</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider" style="margin:12px 0;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Motivo</p>
+            <p style="font-size:12px;color:var(--text);margin-top:2px;">Error gradientes T2</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Viático</p>
+            <p style="font-size:12px;color:var(--green);font-weight:700;margin-top:2px;">$20.405</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Tipo</p>
+            <p style="font-size:12px;color:var(--text);margin-top:2px;">Abono</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Herramienta</p>
+            <p style="font-size:12px;color:var(--blue);margin-top:2px;">TeamViewer</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 12px;">
+        <button class="btn btn-primary" onclick="go('s-remote')">
+          <span>💻</span> Soporte Remoto
+        </button>
+        <button class="btn btn-ghost" onclick="go('s-expenses')">
+          <span>💳</span> Gastos
+        </button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px 12px;">
+        <button class="btn btn-ghost btn-sm" style="flex-direction:column;gap:4px;padding:12px 6px;">
+          <span style="font-size:18px;">🔩</span><span style="font-size:11px;">Repuestos</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" style="flex-direction:column;gap:4px;padding:12px 6px;">
+          <span style="font-size:18px;">📷</span><span style="font-size:11px;">Fotos</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="go('s-close')" style="flex-direction:column;gap:4px;padding:12px 6px;">
+          <span style="font-size:18px;">✅</span><span style="font-size:11px;">Cerrar</span>
+        </button>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section-title">HISTORIAL</div>
+      <div class="card">
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:var(--glow-g);"></div>
+            <div style="width:1px;flex:1;background:var(--border);margin:4px 0;"></div>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:600;color:var(--text);">Orden creada</p>
+            <p style="font-size:11px;color:var(--text2);">09:15 · Sistema detectó módulo Gradient</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:var(--glow-b);"></div>
+            <div style="width:1px;flex:1;background:var(--border);margin:4px 0;"></div>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:600;color:var(--text);">Sesión remota iniciada</p>
+            <p style="font-size:11px;color:var(--text2);">09:28 · TeamViewer · ID: 847-293-156</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid var(--amber);animation:pulse-glow 2s infinite;margin-top:2px;"></div>
+          <div>
+            <p style="font-size:12px;font-weight:600;color:var(--amber);">En progreso</p>
+            <p style="font-size:11px;color:var(--text2);">Diagnóstico de secuencia T2 activo</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 4: SOPORTE REMOTO               -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-remote">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-order')">←</div>
+      <div>
+        <p style="font-size:11px;color:var(--text2);">OS-00023</p>
+        <h2>Soporte Remoto</h2>
+      </div>
+    </div>
+
+    <div class="scroll-body" style="padding-bottom:80px;">
+
+      <!-- Tool selector -->
+      <div style="padding:0 16px 16px;">
+        <p style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;">Herramienta de conexión</p>
+        <div class="tool-grid">
+          <div class="tool-card selected" id="tool-tv" onclick="selectTool('tv')">
+            <div class="tool-icon">🖥️</div>
+            <div class="tool-name">TeamViewer</div>
+          </div>
+          <div class="tool-card" id="tool-ad" onclick="selectTool('ad')">
+            <div class="tool-icon">🔌</div>
+            <div class="tool-name">AnyDesk</div>
+          </div>
+          <div class="tool-card" id="tool-am" onclick="selectTool('am')">
+            <div class="tool-icon">📡</div>
+            <div class="tool-name">Ammyy</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timer -->
+      <div class="card" style="text-align:center; padding:32px 16px;">
+        <p style="font-size:11px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;">Tiempo de sesión</p>
+        <div class="timer-display timer-active" id="timer-display">00:42:17</div>
+        <p style="font-size:12px;color:var(--text2);margin-top:12px;">📍 TeamViewer · ID: 847-293-156</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;">
+          <button class="btn btn-ghost" style="padding:14px;" onclick="stopTimer()">
+            ⏹ Detener
+          </button>
+          <button class="btn btn-primary" style="padding:14px;" onclick="go('s-order')">
+            💾 Guardar
+          </button>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="padding:0 16px;">
+        <div class="input-group">
+          <label>Notas de la sesión</label>
+          <textarea class="input-field" rows="4" placeholder="Describí las acciones realizadas..." style="resize:none;">Ajuste de parámetros en protocol T2 SENSE. Verificación de gradiente Z. Reboot del módulo Gradient Control Board.</textarea>
+        </div>
+
+        <div style="background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);border-radius:14px;padding:14px;margin-top:4px;">
+          <p style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;">¿SE SOLUCIONÓ LA FALLA?</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+            <button class="btn btn-success btn-sm" onclick="go('s-close')">✅ Sí, cerrar</button>
+            <button class="btn btn-ghost btn-sm" onclick="go('s-order')">❌ No, viaje</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 5: GASTOS / VIÁTICOS            -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-expenses">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-order')">←</div>
+      <div>
+        <p style="font-size:11px;color:var(--text2);">OS-00023</p>
+        <h2>Gastos y Viáticos</h2>
+      </div>
+    </div>
+
+    <div class="scroll-body">
+
+      <!-- Viatico summary -->
+      <div class="card glow-green">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3>Viático Mysler</h3>
+          <span class="pill pill-green">Auto-calculado</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div>
+            <p style="font-size:10px;color:var(--text2);">Distancia</p>
+            <p style="font-size:16px;font-weight:700;color:var(--text);">35 km</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);">Viático</p>
+            <p style="font-size:16px;font-weight:700;color:var(--green);">$20.405</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);">Adelanto</p>
+            <p style="font-size:16px;font-weight:700;color:var(--amber);">$15.000</p>
+          </div>
+        </div>
+        <div class="progress-bar" style="margin-top:12px;">
+          <div class="progress-fill" style="width:60%;background:linear-gradient(90deg,var(--green),var(--blue));"></div>
+        </div>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px;text-align:right;">Saldo a cobrar: <strong style="color:var(--green);">$5.405</strong></p>
+      </div>
+
+      <!-- Add expense -->
+      <div class="section-title">AGREGAR GASTO</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 12px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;">
+          <div style="font-size:22px;">🧾</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;">Factura A/C</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;">
+          <div style="font-size:22px;">🛣️</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;">Autopista</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;">
+          <div style="font-size:22px;">🚗</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;">Sin comp.</div>
+        </div>
+      </div>
+
+      <!-- Expenses loaded -->
+      <div class="section-title">GASTOS CARGADOS</div>
+      <div class="card">
+        <div class="expense-row">
+          <div class="expense-icon" style="background:rgba(0,200,255,.1);">🛣️</div>
+          <div class="expense-info">
+            <div class="expense-name">Peaje Acceso Oeste</div>
+            <div class="expense-sub">6b · Ticket N° 00892341</div>
+          </div>
+          <div class="expense-amount">$2.800</div>
+        </div>
+        <div class="expense-row">
+          <div class="expense-icon" style="background:rgba(0,230,118,.1);">🍔</div>
+          <div class="expense-info">
+            <div class="expense-name">Almuerzo</div>
+            <div class="expense-sub">6c · Sin comprobante</div>
+          </div>
+          <div class="expense-amount">$4.500</div>
+        </div>
+        <div class="expense-row">
+          <div class="expense-icon" style="background:rgba(255,179,0,.1);">🧾</div>
+          <div class="expense-info">
+            <div class="expense-name">YPF S.A. — Nafta</div>
+            <div class="expense-sub">6a · Factura B N° 0001-00123456</div>
+          </div>
+          <div class="expense-amount">$18.200</div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:var(--text2);">TOTAL RENDIDO</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text);">$25.500</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 6: CIERRE DE ORDEN              -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-close">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-order')">←</div>
+      <div>
+        <p style="font-size:11px;color:var(--text2);">OS-00023</p>
+        <h2>Cerrar Orden</h2>
+      </div>
+    </div>
+
+    <div class="scroll-body">
+
+      <div style="padding:0 16px;">
+        <div class="input-group">
+          <label>Descripción del trabajo realizado</label>
+          <textarea class="input-field" rows="4" placeholder="Describí todo lo que se realizó..." style="resize:none;">Se realizó ajuste de parámetros en protocol T2 SENSE. Se verificó y reinició el módulo Gradient Control Board. El equipo quedó operativo.</textarea>
+        </div>
+
+        <div class="input-group">
+          <label>Nombre del responsable que recibe</label>
+          <input class="input-field" type="text" placeholder="Dr./Lic. Nombre Apellido" value="Dra. Valentina Ruiz"/>
+        </div>
+
+        <div class="input-group">
+          <label>Cargo</label>
+          <input class="input-field" type="text" placeholder="Jefe de Imágenes, Físico, etc." value="Jefa de Servicio de Imágenes"/>
+        </div>
+
+        <div class="input-group">
+          <label>Firma del cliente</label>
+          <div class="sig-pad sig-done" id="sig-pad" onclick="toggleSignature()">
+            ✅ Firma capturada
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen final -->
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="margin-bottom:12px;">Resumen de la orden</h3>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <p style="font-size:12px;color:var(--text2);">Soporte remoto</p>
+          <p style="font-size:12px;color:var(--text);font-weight:600;">42 min · TeamViewer</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <p style="font-size:12px;color:var(--text2);">Gastos rendidos</p>
+          <p style="font-size:12px;color:var(--text);font-weight:600;">$25.500</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <p style="font-size:12px;color:var(--text2);">Viático</p>
+          <p style="font-size:12px;color:var(--green);font-weight:600;">$20.405</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);">
+          <p style="font-size:13px;font-weight:600;color:var(--text2);">Saldo a cobrar</p>
+          <p style="font-size:15px;font-weight:700;color:var(--green);">$5.405</p>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 24px;">
+        <button class="btn btn-success btn-full" onclick="completeOrder()" style="font-size:16px;padding:18px;">
+          🔒 Finalizar y Enviar Reporte
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 7: ALERTAS                      -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-alerts">
+    <div class="screen-header" style="padding-bottom:16px;">
+      <div class="back-btn" onclick="go('s-dashboard')">←</div>
+      <div>
+        <h2>Alertas Preventivas</h2>
+        <p style="font-size:11px;color:var(--text2);margin-top:2px;">Componentes que requieren atención</p>
+      </div>
+    </div>
+
+    <div class="scroll-body">
+
+      <div class="section-title" style="color:var(--red);">⚠ VENCIDOS</div>
+
+      <div class="card glow-red">
+        <div class="lifecycle-item" style="border:none;padding:0;">
+          <div class="lifecycle-icon" style="background:rgba(255,61,90,.12);">❄️</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">Coldhead (Compresor Sumitomo F-50)</div>
+            <div class="lifecycle-date">Última reposición: Enero 2022 · Vida útil: 36 meses</div>
+            <div style="margin-top:6px;">
+              <span class="pill pill-red">🔴 Vencido hace 5 meses</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-danger btn-sm" style="flex:1;">📋 Crear orden</button>
+          <button class="btn btn-ghost btn-sm">Ignorar</button>
+        </div>
+        <div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.2);border-radius:10px;">
+          <p style="font-size:11px;color:var(--text2);">📍 Philips Ingenia 3T · Hospital Italiano</p>
+          <p style="font-size:10px;color:var(--text3);margin-top:2px;">Extraído del Service Manual por IA · Jun 2025</p>
+        </div>
+      </div>
+
+      <div class="section-title" style="color:var(--amber);">⏳ PRÓXIMOS A VENCER</div>
+
+      <div class="card" style="border-color:rgba(255,179,0,.25);background:rgba(255,179,0,.03);">
+        <div class="lifecycle-item" style="border:none;padding:0;">
+          <div class="lifecycle-icon" style="background:rgba(255,179,0,.12);">💧</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">Chiller Water Filter</div>
+            <div class="lifecycle-date">Última revisión: Dic 2023 · Vida útil: 18 meses</div>
+            <div class="progress-bar" style="margin-top:6px;">
+              <div class="progress-fill" style="width:89%;background:linear-gradient(90deg,var(--amber),var(--red));"></div>
+            </div>
+            <div style="margin-top:6px;">
+              <span class="pill pill-amber">⏰ Vence en 24 días</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--amber);">📅 Programar</button>
+          <button class="btn btn-ghost btn-sm">Ignorar</button>
+        </div>
+        <div style="margin-top:8px;padding:10px;background:rgba(0,0,0,.2);border-radius:10px;">
+          <p style="font-size:11px;color:var(--text2);">📍 Siemens SOMATOM · Hospital Argentino</p>
+        </div>
+      </div>
+
+      <div class="section-title" style="color:var(--green);">✅ EN ORDEN</div>
+      <div class="card">
+        <div class="lifecycle-item">
+          <div class="lifecycle-icon" style="background:rgba(0,230,118,.1);">⚡</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">Gradient Amplifier Board</div>
+            <div class="lifecycle-date">Revisado: Mar 2025 · Próximo: Mar 2027</div>
+            <div class="progress-bar" style="margin-top:6px;">
+              <div class="progress-fill" style="width:12%;background:var(--green);"></div>
+            </div>
+          </div>
+          <span class="pill pill-green" style="font-size:10px;">OK</span>
+        </div>
+        <div class="lifecycle-item" style="border:none;">
+          <div class="lifecycle-icon" style="background:rgba(0,230,118,.1);">🔋</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">UPS — Batería Principal</div>
+            <div class="lifecycle-date">Revisado: Ago 2024 · Próximo: Ago 2026</div>
+            <div class="progress-bar" style="margin-top:6px;">
+              <div class="progress-fill" style="width:35%;background:var(--blue);"></div>
+            </div>
+          </div>
+          <span class="pill pill-green" style="font-size:10px;">OK</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="go('s-dashboard')">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">ÓRDENES</div>
+      </div>
+      <div class="nav-item" onclick="go('s-equipment')">
+        <div class="nav-icon">🔬</div>
+        <div class="nav-label">EQUIPOS</div>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-icon">🔔</div>
+        <div class="nav-label">ALERTAS</div>
+        <div class="nav-badge">2</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">👤</div>
+        <div class="nav-label">PERFIL</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 8: EQUIPOS                      -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-equipment">
+    <div class="screen-header" style="padding-bottom:16px;">
+      <div class="back-btn" onclick="go('s-dashboard')">←</div>
+      <div>
+        <h2>Equipos</h2>
+        <p style="font-size:11px;color:var(--text2);margin-top:2px;">Ficha técnica de cada equipo</p>
+      </div>
+    </div>
+    <div class="scroll-body">
+      <div style="padding:0 16px 12px;">
+        <input class="input-field" type="search" placeholder="🔍  Buscar por cliente o número de serie..."/>
+      </div>
+
+      <!-- Equipment cards -->
+      <div class="ticket-card glow-blue" onclick="go('s-mri-detail')">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--blue2),var(--purple));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⚡</div>
+          <div>
+            <div style="font-size:11px;color:var(--blue);font-weight:600;">RESONANCIA · MIB-CBO</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);">Philips Ingenia 3T</div>
+            <div style="font-size:12px;color:var(--text2);">Hospital Italiano · S/N: PH38291A</div>
+          </div>
+          <div style="margin-left:auto;">
+            <span class="pill pill-red" style="font-size:10px;">1 alerta</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-card">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#1a4a8a,#0055aa);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🔬</div>
+          <div>
+            <div style="font-size:11px;color:var(--blue);font-weight:600;">TOMOGRAFÍA · 64 CORTES</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);">Siemens SOMATOM</div>
+            <div style="font-size:12px;color:var(--text2);">Hospital Argentino · S/N: SI09832C</div>
+          </div>
+          <div style="margin-left:auto;">
+            <span class="pill pill-amber" style="font-size:10px;">1 alerta</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-card">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#1a5a3a,#007744);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">☢️</div>
+          <div>
+            <div style="font-size:11px;color:var(--green);font-weight:600;">CÁMARA GAMMA · 2 CABEZALES</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);">GE Infinia</div>
+            <div style="font-size:12px;color:var(--text2);">Clínica IAMA · S/N: GE77201B</div>
+          </div>
+          <div style="margin-left:auto;">
+            <span class="pill pill-green" style="font-size:10px;">OK</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="go('s-dashboard')">
+        <div class="nav-icon">📋</div><div class="nav-label">ÓRDENES</div>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-icon">🔬</div><div class="nav-label">EQUIPOS</div>
+      </div>
+      <div class="nav-item" onclick="go('s-alerts')">
+        <div class="nav-icon">🔔</div><div class="nav-label">ALERTAS</div>
+        <div class="nav-badge">2</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">👤</div><div class="nav-label">PERFIL</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 9: FICHA TÉCNICA MRI            -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-mri-detail">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-equipment')">←</div>
+      <div>
+        <p style="font-size:11px;color:var(--blue);">⚡ RESONANCIA MAGNÉTICA</p>
+        <h2>Philips Ingenia 3T</h2>
+      </div>
+    </div>
+    <div class="scroll-body">
+
+      <div class="card glow-blue">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+          <h3>Magneto</h3>
+          <span class="pill pill-purple">MIB-CBO</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">N° de Serie</p>
+            <p style="font-size:13px;color:var(--text);font-weight:600;margin-top:3px;font-family:monospace;">PH38291A</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Campo</p>
+            <p style="font-size:13px;color:var(--blue);font-weight:600;margin-top:3px;">3.0 Tesla</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">IP Hospital LAN</p>
+            <p style="font-size:13px;color:var(--green);font-weight:600;margin-top:3px;font-family:monospace;">192.168.1.45</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">SW Host</p>
+            <p style="font-size:13px;color:var(--text);font-weight:600;margin-top:3px;">R5.7.1.2</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">BOBINAS INSTALADAS</div>
+      <div class="card">
+        <div class="lifecycle-item">
+          <div class="lifecycle-icon" style="background:rgba(0,200,255,.1);">🧲</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">dStream Head/Neck 32ch</div>
+            <div class="lifecycle-date">S/N: DN-H32-09821 · 32 canales</div>
+          </div>
+        </div>
+        <div class="lifecycle-item">
+          <div class="lifecycle-icon" style="background:rgba(0,200,255,.1);">🧲</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">dStream Torso 32ch</div>
+            <div class="lifecycle-date">S/N: DN-T32-04561 · 32 canales</div>
+          </div>
+        </div>
+        <div class="lifecycle-item" style="border:none;">
+          <div class="lifecycle-icon" style="background:rgba(0,200,255,.1);">🧲</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">dStream Knee 16ch</div>
+            <div class="lifecycle-date">S/N: DN-K16-11203 · 16 canales</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">HARDWARE — PCs</div>
+      <div class="card">
+        <div class="lifecycle-item">
+          <div class="lifecycle-icon" style="background:rgba(123,47,247,.15);">💻</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">PC Host</div>
+            <div class="lifecycle-date">Dell OptiPlex 7090 · 512 GB SSD NVMe · 32 GB RAM</div>
+            <div style="margin-top:4px;"><span class="pill pill-green" style="font-size:10px;">✅ SSD</span></div>
+          </div>
+        </div>
+        <div class="lifecycle-item" style="border:none;">
+          <div class="lifecycle-icon" style="background:rgba(255,179,0,.12);">🖥️</div>
+          <div class="lifecycle-info">
+            <div class="lifecycle-name">PC Reconstrucción</div>
+            <div class="lifecycle-date">HP Z2 G5 · 1 TB HDD + 256 GB SSD · 64 GB RAM</div>
+            <div style="margin-top:4px;"><span class="pill pill-amber" style="font-size:10px;">⚠ Pendiente migración SSD</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">BACKUP</div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Último backup</p>
+            <p style="font-size:13px;color:var(--text);font-weight:600;margin-top:3px;">15 May 2026</p>
+          </div>
+          <div>
+            <p style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Tipo</p>
+            <p style="font-size:13px;color:var(--blue);font-weight:600;margin-top:3px;">Imagen .TIB</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button class="btn btn-ghost" style="padding:14px;">📷 Galería</button>
+        <button class="btn btn-ghost" style="padding:14px;">🤖 Análisis IA</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN 10: ORDEN COMPLETADA            -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-done" style="background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;">
+    <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--green),#008f4c);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:var(--glow-g);margin-bottom:24px;">✅</div>
+    <h1 style="text-align:center;margin-bottom:8px;">¡Orden Cerrada!</h1>
+    <p style="text-align:center;color:var(--text2);margin-bottom:32px;">OS-00023 fue completada exitosamente.<br>El reporte fue enviado a administración.</p>
+
+    <div class="card" style="width:100%;margin:0 0 24px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);">Tiempo remoto</p>
+        <p style="font-size:12px;color:var(--text);font-weight:600;">42 min</p>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);">Gastos rendidos</p>
+        <p style="font-size:12px;color:var(--text);font-weight:600;">$25.500</p>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <p style="font-size:13px;font-weight:600;color:var(--text2);">A cobrar</p>
+        <p style="font-size:15px;font-weight:700;color:var(--green);">$5.405</p>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="go('s-dashboard')" style="padding:18px;">
+      ← Volver a mis órdenes
+    </button>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ── NAVIGATION ──
+let currentScreen = 's-login';
+
+function go(id) {
+  const from = document.getElementById(currentScreen);
+  const to   = document.getElementById(id);
+  if (!to || from === to) return;
+  from.classList.add('hidden', 'slide-left');
+  to.classList.remove('hidden');
+  setTimeout(() => from.classList.remove('slide-left'), 350);
+  currentScreen = id;
+  window.scrollTo(0,0);
+}
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clock').textContent = h + ':' + m;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// ── TIMER ──
+let timerInterval = null;
+let timerSeconds  = 2537; // 42:17 simulated
+
+function formatTime(s) {
+  const h = Math.floor(s / 3600).toString().padStart(2,'0');
+  const m = Math.floor((s % 3600) / 60).toString().padStart(2,'0');
+  const sec = (s % 60).toString().padStart(2,'0');
+  return h > '00' ? `${h}:${m}:${sec}` : `${m}:${sec}`;
+}
+
+function startTimerLoop() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    const el = document.getElementById('timer-display');
+    if (el) el.textContent = '00:' + formatTime(timerSeconds);
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  const el = document.getElementById('timer-display');
+  if (el) { el.classList.remove('timer-active'); }
+  go('s-order');
+}
+startTimerLoop();
+
+// ── TOOL SELECTOR ──
+function selectTool(t) {
+  ['tv','ad','am'].forEach(id => {
+    document.getElementById('tool-'+id).classList.remove('selected');
+  });
+  document.getElementById('tool-'+t).classList.add('selected');
+}
+
+// ── SIGNATURE ──
+let signed = true;
+function toggleSignature() {
+  signed = !signed;
+  const el = document.getElementById('sig-pad');
+  if (signed) {
+    el.textContent = '✅ Firma capturada';
+    el.classList.add('sig-done');
+  } else {
+    el.textContent = '✍️ Toca para firmar';
+    el.classList.remove('sig-done');
+  }
+}
+
+// ── COMPLETE ORDER ──
+function completeOrder() {
+  go('s-done');
+  // Confetti-like animation
+  const shell = document.getElementById('shell');
+  for (let i = 0; i < 12; i++) {
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      position:absolute; width:6px; height:6px; border-radius:50%;
+      background:${['#00c8ff','#7b2ff7','#00e676','#ffb300'][i%4]};
+      left:${Math.random()*100}%; top:${Math.random()*60+20}%;
+      animation:fall .8s ease-out ${Math.random()*0.5}s forwards;
+      pointer-events:none; z-index:999;
+    `;
+    shell.appendChild(dot);
+    setTimeout(() => dot.remove(), 1500);
+  }
+}
+
+// ── CONFETTI KEYFRAMES ──
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fall {
+    0%   { transform:translateY(0) scale(1); opacity:1; }
+    100% { transform:translateY(80px) scale(0); opacity:0; }
+  }
+`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>
