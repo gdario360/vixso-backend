@@ -102,10 +102,10 @@ async def get_admin_user(current_user=Depends(get_current_user)):
 # ─────────────────────────────────────────────
 
 def get_company_id(user) -> str:
-    profile = supabase.table("profiles").select("company_id").eq("id", user.id).single().execute().data
-    if not profile:
-        raise HTTPException(400, "Perfil no encontrado. Contactar al administrador.")
-    return profile["company_id"]
+    result = supabase.table("profiles").select("company_id").eq("id", user.id).execute()
+    if not result.data:
+        raise HTTPException(400, f"Perfil no encontrado para user_id={user.id}. Verificar RLS y service key.")
+    return result.data[0]["company_id"]
 
 
 def calculate_viatico(company_id: str, km: int) -> float:
@@ -316,7 +316,13 @@ class ViaticoAdvanceCreate(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "3.0.0"}
+    has_service_key = bool(SUPABASE_SERVICE_KEY)
+    try:
+        test = supabase.table("profiles").select("id").limit(1).execute()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return {"status": "ok", "version": "3.0.0", "service_key": has_service_key, "db": db_ok}
 
 @app.get("/config/public", include_in_schema=False)
 def get_public_config():
