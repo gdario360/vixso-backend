@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIXSO — Panel de Administración</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   :root{
@@ -14,7 +15,15 @@
     --text:#e2eeff; --text2:#7a9ab8; --text3:#3d5a7a;
     --border:rgba(0,200,255,.12); --radius:12px;
   }
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+  #app{display:none;min-height:100vh;}
+  .app-inner{display:flex;min-height:100vh;}
+
+  /* ── LOGIN ── */
+  #login-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;}
+  .login-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px;width:380px;}
+  .login-logo{font-size:28px;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,#fff,var(--blue),var(--purple2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .login-sub{font-size:10px;color:var(--text3);letter-spacing:2px;margin-bottom:28px;}
 
   /* ── SIDEBAR ── */
   .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
@@ -139,9 +148,37 @@
   .toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:3px;transition:left .2s;}
   .toggle.on::after{left:19px;}
   .toggle-label{font-size:13px;color:var(--text2);}
+
+  /* ── LOADING ── */
+  .loading{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
 </style>
 </head>
 <body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">VIXSO</div>
+    <div class="login-sub">PANEL DE ADMINISTRACIÓN — BIONUCLEAR</div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="usuario@bionuclear.com" value="dario.galliussi@gmail.com"/>
+    </div>
+    <div class="field" style="margin-bottom:20px;">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">
+      Ingresar
+    </button>
+    <div id="login-error" style="margin-top:12px;font-size:12px;color:var(--red);text-align:center;display:none;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app">
+<div class="app-inner">
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -173,9 +210,9 @@
 
   <div class="sidebar-footer">
     <div class="user-chip">
-      <div class="user-avatar">DG</div>
+      <div class="user-avatar" id="user-initials">DG</div>
       <div>
-        <div class="user-name" style="color:var(--text);font-weight:600;">Dario Galliussi</div>
+        <div class="user-name" id="user-fullname" style="color:var(--text);font-weight:600;">Cargando...</div>
         <div class="user-name">Administrador</div>
       </div>
     </div>
@@ -191,6 +228,7 @@
     <div class="topbar-actions">
       <span style="font-size:12px;color:var(--text2);">Bionuclear S.A.</span>
       <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Salir</button>
     </div>
   </div>
 
@@ -203,20 +241,20 @@
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">3</div>
-          <div class="stat-label">Plantillas activas</div>
+          <div class="stat-value" id="stat-abiertas">—</div>
+          <div class="stat-label">Órdenes abiertas</div>
         </div>
         <div class="stat-card red">
-          <div class="stat-value">2</div>
+          <div class="stat-value" id="stat-alertas">—</div>
           <div class="stat-label">Alertas de componentes</div>
         </div>
         <div class="stat-card amber">
-          <div class="stat-value">1</div>
-          <div class="stat-label">Clientes sin servicio</div>
+          <div class="stat-value" id="stat-clientes-alerta">—</div>
+          <div class="stat-label">Clientes con alerta</div>
         </div>
         <div class="stat-card green">
-          <div class="stat-value">10</div>
-          <div class="stat-label">Usuarios activos</div>
+          <div class="stat-value" id="stat-completadas">—</div>
+          <div class="stat-label">Completadas este mes</div>
         </div>
       </div>
 
@@ -224,56 +262,18 @@
       <div class="card">
         <table class="data-table">
           <thead><tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Técnico</th><th>Estado</th><th>Viático</th></tr></thead>
-          <tbody>
-            <tr>
-              <td style="font-family:monospace;color:var(--blue);">OS-00025</td>
-              <td>Hospital Italiano</td>
-              <td>Philips Ingenia 3T</td>
-              <td>D. Galliussi</td>
-              <td><span class="pill pill-green"><span class="dot"></span>Completado</span></td>
-              <td style="color:var(--green);">$20.405</td>
-            </tr>
-            <tr>
-              <td style="font-family:monospace;color:var(--blue);">OS-00024</td>
-              <td>Sanatorio Güemes</td>
-              <td>Siemens SOMATOM</td>
-              <td>Técnico 2</td>
-              <td><span class="pill pill-blue"><span class="dot"></span>En Remoto</span></td>
-              <td style="color:var(--green);">$33.231</td>
-            </tr>
-            <tr>
-              <td style="font-family:monospace;color:var(--blue);">OS-00023</td>
-              <td>Clínica IAMA</td>
-              <td>GE Infinia</td>
-              <td>Técnico 3</td>
-              <td><span class="pill pill-amber"><span class="dot"></span>Abierto</span></td>
-              <td style="color:var(--amber);">$19.822</td>
-            </tr>
+          <tbody id="recent-orders-tbody">
+            <tr><td colspan="6" class="loading">Cargando órdenes...</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="section-title">ALERTAS ACTIVAS</div>
+      <div class="section-title">ALERTAS DE COMPONENTES</div>
       <div class="card" style="border-color:rgba(255,61,90,.25);background:rgba(255,61,90,.03);">
         <table class="data-table">
-          <thead><tr><th>Componente</th><th>Equipo</th><th>Cliente</th><th>Estado</th><th>Vence / Venció</th><th>Acción</th></tr></thead>
-          <tbody>
-            <tr>
-              <td style="font-weight:600;">Coldhead / Compressor</td>
-              <td>Philips Achieva 1.5T</td>
-              <td>Hospital Italiano</td>
-              <td><span class="pill pill-red">🔴 Vencido</span></td>
-              <td style="color:var(--red);">Hace 5 meses</td>
-              <td><button class="btn btn-primary btn-sm">Crear orden</button></td>
-            </tr>
-            <tr>
-              <td style="font-weight:600;">Chiller Water Filter</td>
-              <td>Siemens SOMATOM</td>
-              <td>Hospital Argentino</td>
-              <td><span class="pill pill-amber">⏰ Próximo</span></td>
-              <td style="color:var(--amber);">En 24 días</td>
-              <td><button class="btn btn-ghost btn-sm">Programar</button></td>
-            </tr>
+          <thead><tr><th>Componente</th><th>Equipo</th><th>Cliente</th><th>Estado</th><th>Vence / Venció</th></tr></thead>
+          <tbody id="alerts-tbody">
+            <tr><td colspan="5" class="loading">Cargando alertas...</td></tr>
           </tbody>
         </table>
       </div>
@@ -291,153 +291,33 @@
       </div>
 
       <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;">
-
-        <!-- Lista de plantillas -->
         <div>
           <div class="section-title">PLANTILLAS</div>
-          <div class="template-list">
-            <div class="template-item selected" onclick="selectTemplate(this,'mri1')">
-              <div>
-                <div class="template-name">Philips Achieva 1.5T</div>
-                <div class="template-meta">Resonancia · 28 componentes</div>
-              </div>
-              <span class="pill pill-blue" style="font-size:10px;">MRI</span>
-            </div>
-            <div class="template-item" onclick="selectTemplate(this,'mri2')">
-              <div>
-                <div class="template-name">Philips Ingenia 3T</div>
-                <div class="template-meta">Resonancia · 30 componentes</div>
-              </div>
-              <span class="pill pill-blue" style="font-size:10px;">MRI</span>
-            </div>
-            <div class="template-item" onclick="selectTemplate(this,'ct1')">
-              <div>
-                <div class="template-name">Siemens SOMATOM</div>
-                <div class="template-meta">Tomografía · 18 componentes</div>
-              </div>
-              <span class="pill pill-purple" style="font-size:10px;">CT</span>
-            </div>
-            <div style="margin-top:8px;">
-              <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="showNewTemplate()">+ Agregar plantilla</button>
-            </div>
+          <div class="template-list" id="template-list">
+            <div class="loading">Cargando plantillas...</div>
           </div>
         </div>
 
-        <!-- Editor de componentes -->
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div class="section-title" style="margin:0;">COMPONENTES — Philips Achieva 1.5T</div>
+            <div class="section-title" style="margin:0;" id="comp-title">Seleccioná una plantilla</div>
             <button class="btn btn-primary btn-sm" onclick="showAddComponent()">+ Componente</button>
           </div>
-
           <div class="comp-editor">
             <div class="comp-list" id="comp-list">
-
-              <div class="comp-item">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">Magnet Type</div>
-                    <span style="font-size:10px;color:var(--text3);">Magneto · select</span>
-                  </div>
-                  <div class="comp-options">
-                    <span class="opt-tag">F2000</span><span class="opt-tag">4K</span><span class="opt-tag">3T_2</span>
-                  </div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm" onclick="editComponent('Magnet Type')">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-              <div class="comp-item">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">RF Amplifier Type</div>
-                    <span style="font-size:10px;color:var(--text3);">RF System · select</span>
-                  </div>
-                  <div class="comp-options">
-                    <span class="opt-tag">S21_64</span><span class="opt-tag">S23_64</span><span class="opt-tag">S30_64</span><span class="opt-tag">8118_64</span>
-                  </div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-              <div class="comp-item">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">Gradient Amplifier Type</div>
-                    <span style="font-size:10px;color:var(--text3);">Gradientes · select</span>
-                  </div>
-                  <div class="comp-options">
-                    <span class="opt-tag">274-S</span><span class="opt-tag">274-D</span><span class="opt-tag">781</span><span class="opt-tag">787</span>
-                  </div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-              <div class="comp-item" style="border-color:rgba(255,179,0,.25);background:rgba(255,179,0,.03);">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">Coldhead / Compressor</div>
-                    <span style="font-size:10px;color:var(--text3);">Criogenia · text</span>
-                    <span class="lifecycle-badge">⏱ 36 meses</span>
-                  </div>
-                  <div class="comp-meta">Vida útil: 36 meses — o 8.000 hs de operación</div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-              <div class="comp-item">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">IP Hospital LAN</div>
-                    <span style="font-size:10px;color:var(--text3);">Conectividad · text</span>
-                  </div>
-                  <div class="comp-meta">Texto libre — Ej: 192.168.1.45</div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-              <div class="comp-item">
-                <div style="flex:1;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="comp-name">Último Backup</div>
-                    <span style="font-size:10px;color:var(--text3);">Conectividad · date</span>
-                  </div>
-                  <div class="comp-meta">Fecha del último respaldo del sistema</div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm">✏</button>
-                  <button class="btn btn-danger btn-sm">🗑</button>
-                </div>
-              </div>
-
-            </div><!-- /comp-list -->
-
-            <!-- Formulario agregar componente (oculto por default) -->
+              <p style="color:var(--text3);font-size:13px;">Seleccioná una plantilla para ver sus componentes.</p>
+            </div>
             <div id="add-comp-form" style="display:none;background:rgba(0,0,0,.2);border-radius:10px;padding:16px;margin-top:8px;">
               <p style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:14px;">NUEVO COMPONENTE</p>
               <div class="form-row cols-2">
-                <div class="field"><label>Nombre del componente</label><input type="text" placeholder="Ej: RF Amplifier Type"/></div>
+                <div class="field"><label>Nombre del componente</label><input type="text" id="comp-name-input" placeholder="Ej: RF Amplifier Type"/></div>
                 <div class="field"><label>Categoría</label>
-                  <select><option>RF System</option><option>Gradientes</option><option>Magneto</option><option>Criogenia</option><option>Conectividad</option><option>Patient Interface</option><option>Adquisición</option></select>
+                  <select id="comp-category"><option>RF System</option><option>Gradientes</option><option>Magneto</option><option>Criogenia</option><option>Conectividad</option><option>Patient Interface</option><option>Adquisición</option></select>
                 </div>
               </div>
               <div class="form-row cols-3">
                 <div class="field"><label>Tipo de campo</label>
-                  <select id="input-type-sel" onchange="toggleLifecycle()">
+                  <select id="input-type-sel" onchange="toggleOptionsSection()">
                     <option value="select">Lista de opciones</option>
                     <option value="text">Texto libre</option>
                     <option value="date">Fecha</option>
@@ -453,31 +333,23 @@
                 </div>
                 <div class="field" id="lifespan-field" style="display:none;">
                   <label>Vida útil (meses)</label>
-                  <input type="number" placeholder="Ej: 36"/>
+                  <input type="number" id="lifespan-input" placeholder="Ej: 36"/>
                 </div>
               </div>
-
-              <!-- Opciones (solo para tipo select) -->
               <div id="options-section">
                 <p style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px;">OPCIONES POSIBLES</p>
-                <div id="options-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                  <span class="opt-tag" style="cursor:pointer;">S21_64 ✕</span>
-                  <span class="opt-tag" style="cursor:pointer;">S23_64 ✕</span>
-                  <span class="opt-tag" style="cursor:pointer;">S30_64 ✕</span>
-                </div>
+                <div id="options-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
                 <div style="display:flex;gap:8px;">
-                  <input id="new-option-input" type="text" class="field" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;" placeholder="Nueva opción..."/>
+                  <input id="new-option-input" type="text" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;" placeholder="Nueva opción..."/>
                   <button class="btn btn-ghost btn-sm" onclick="addOption()">+ Agregar</button>
                 </div>
               </div>
-
               <div style="display:flex;gap:8px;margin-top:14px;">
-                <button class="btn btn-primary">💾 Guardar componente</button>
+                <button class="btn btn-primary" onclick="saveComponent()">💾 Guardar componente</button>
                 <button class="btn btn-ghost" onclick="document.getElementById('add-comp-form').style.display='none'">Cancelar</button>
               </div>
             </div>
-
-          </div><!-- /comp-editor -->
+          </div>
         </div>
       </div>
     </div>
@@ -493,42 +365,40 @@
         <p>Las tarifas se guardan con fecha de vigencia. El sistema usa siempre la más reciente. El historial completo queda registrado para auditoría.</p>
       </div>
 
-      <!-- Tarifa vigente -->
       <div class="section-title">TARIFA VIGENTE</div>
       <div class="tariff-grid">
         <div class="tariff-card">
           <div class="tariff-km">Hasta 150 km</div>
-          <div class="tariff-value" id="display-t1">$583</div>
+          <div class="tariff-value" id="display-t1">—</div>
           <div class="tariff-unit">por km</div>
         </div>
         <div class="tariff-card">
           <div class="tariff-km">151 a 400 km</div>
-          <div class="tariff-value" id="display-t2">$279</div>
+          <div class="tariff-value" id="display-t2">—</div>
           <div class="tariff-unit">por km</div>
         </div>
         <div class="tariff-card">
           <div class="tariff-km">Más de 400 km</div>
-          <div class="tariff-value" id="display-t3">$240</div>
+          <div class="tariff-value" id="display-t3">—</div>
           <div class="tariff-unit">por km</div>
         </div>
       </div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:20px;">Vigente desde: 28 de Enero de 2026</p>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:20px;" id="tariff-since"></p>
 
-      <!-- Actualizar tarifas -->
       <div class="section-title">ACTUALIZAR TARIFAS</div>
       <div class="card">
         <div class="form-row cols-3">
           <div class="field">
             <label>Hasta 150 km ($/km)</label>
-            <input type="number" id="t1" placeholder="583" value="583"/>
+            <input type="number" id="t1" placeholder="583"/>
           </div>
           <div class="field">
             <label>151 a 400 km ($/km)</label>
-            <input type="number" id="t2" placeholder="279" value="279"/>
+            <input type="number" id="t2" placeholder="279"/>
           </div>
           <div class="field">
             <label>Más de 400 km ($/km)</label>
-            <input type="number" id="t3" placeholder="240" value="240"/>
+            <input type="number" id="t3" placeholder="240"/>
           </div>
         </div>
         <div class="form-row cols-2">
@@ -538,13 +408,12 @@
           </div>
           <div class="field">
             <label>Notas (opcional)</label>
-            <input type="text" placeholder="Ej: Actualización Junio 2026"/>
+            <input type="text" id="t-notes" placeholder="Ej: Actualización Junio 2026"/>
           </div>
         </div>
         <button class="btn btn-primary" onclick="saveTariff()">💾 Guardar nuevas tarifas</button>
       </div>
 
-      <!-- Simulador -->
       <div class="section-title">SIMULADOR DE VIÁTICO</div>
       <div class="card">
         <div style="display:flex;gap:14px;align-items:flex-end;">
@@ -563,16 +432,12 @@
         </div>
       </div>
 
-      <!-- Historial -->
       <div class="section-title">HISTORIAL DE TARIFAS</div>
       <div class="card">
         <table class="data-table">
           <thead><tr><th>Vigente desde</th><th>≤150 km</th><th>151–400 km</th><th>>400 km</th><th>Notas</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>28 Ene 2026</td><td style="color:var(--green);">$583/km</td><td style="color:var(--green);">$279/km</td><td style="color:var(--green);">$240/km</td>
-              <td style="color:var(--text2);">Tarifas iniciales del sistema</td>
-            </tr>
+          <tbody id="tariff-history-tbody">
+            <tr><td colspan="5" class="loading">Cargando historial...</td></tr>
           </tbody>
         </table>
       </div>
@@ -589,52 +454,31 @@
         <p>Los clientes marcados como "Sin servicio", "Con deuda" u "Otro proveedor" generarán una alerta visible al crear una orden de trabajo para ese equipo.</p>
       </div>
 
-      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-ghost btn-sm" onclick="filterClients('all')">Todos</button>
         <button class="btn btn-ghost btn-sm" onclick="filterClients('activo')"><span style="color:var(--green);">●</span> Activos</button>
         <button class="btn btn-ghost btn-sm" onclick="filterClients('sin_servicio')"><span style="color:var(--red);">●</span> Sin servicio</button>
         <button class="btn btn-ghost btn-sm" onclick="filterClients('deuda')"><span style="color:var(--amber);">●</span> Con deuda</button>
         <button class="btn btn-ghost btn-sm" onclick="filterClients('otro_proveedor')"><span style="color:var(--text2);">●</span> Otro proveedor</button>
+        <input type="text" id="client-search" placeholder="Buscar cliente..." oninput="filterClientsText(this.value)"
+               style="margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;outline:none;width:200px;"/>
       </div>
 
       <div class="card">
         <table class="data-table">
           <thead>
-            <tr><th>Cliente</th><th>Ciudad</th><th>Km</th><th>Equipos</th><th>Estado</th><th>Motivo</th><th>Acciones</th></tr>
+            <tr><th>Cliente</th><th>Km</th><th>Estado</th><th>Motivo</th><th>Acciones</th></tr>
           </thead>
-          <tbody>
-            <tr>
-              <td style="font-weight:600;">Hospital Italiano</td><td>Buenos Aires</td><td>32</td><td>2</td>
-              <td><span class="pill pill-green"><span class="dot"></span>Activo</span></td>
-              <td style="color:var(--text3);">—</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Hospital Italiano','activo')">Cambiar</button></td>
-            </tr>
-            <tr>
-              <td style="font-weight:600;">Clínica Mysler</td><td>Buenos Aires</td><td>35</td><td>1</td>
-              <td><span class="pill pill-red"><span class="dot"></span>Sin servicio</span></td>
-              <td style="font-size:12px;color:var(--text2);">Lo mantiene Siemens HealthService</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Clínica Mysler','sin_servicio')">Cambiar</button></td>
-            </tr>
-            <tr>
-              <td style="font-weight:600;">Sanatorio Güemes</td><td>Buenos Aires</td><td>29</td><td>3</td>
-              <td><span class="pill pill-amber"><span class="dot"></span>Con deuda</span></td>
-              <td style="font-size:12px;color:var(--text2);">Deuda pendiente desde Feb 2026</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Sanatorio Güemes','deuda')">Cambiar</button></td>
-            </tr>
-            <tr>
-              <td style="font-weight:600;">Favaloro</td><td>Buenos Aires</td><td>18</td><td>1</td>
-              <td><span class="pill pill-green"><span class="dot"></span>Activo</span></td>
-              <td style="color:var(--text3);">—</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="openStatusModal('Favaloro','activo')">Cambiar</button></td>
-            </tr>
+          <tbody id="clients-tbody">
+            <tr><td colspan="5" class="loading">Cargando clientes...</td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- Modal estado cliente -->
-      <div id="status-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;">
+      <div id="status-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:420px;">
-          <h3 style="margin-bottom:16px;" id="modal-client-name">Hospital Italiano</h3>
+          <h3 style="margin-bottom:16px;" id="modal-client-name">—</h3>
           <div class="field" style="margin-bottom:14px;">
             <label>Estado del cliente</label>
             <select id="modal-status">
@@ -655,7 +499,6 @@
           </div>
         </div>
       </div>
-
     </div>
 
 
@@ -663,24 +506,11 @@
     <!-- PANEL: USUARIOS                        -->
     <!-- ══════════════════════════════════════ -->
     <div class="panel" id="panel-users">
-      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>USUARIOS DEL SISTEMA</span>
-        <button class="btn btn-primary btn-sm">+ Nuevo usuario</button>
-      </div>
       <div class="card">
         <table class="data-table">
-          <thead><tr><th>Legajo</th><th>Nombre</th><th>Rol</th><th>Especialidades</th><th>Teléfono</th><th>Estado</th></tr></thead>
-          <tbody>
-            <tr><td>001</td><td style="font-weight:600;">Dario Galliussi</td><td><span class="pill pill-purple">Admin</span></td><td>Todas</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>002</td><td style="font-weight:600;">Jefe 1</td><td><span class="pill pill-blue">Jefe</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>004</td><td style="font-weight:600;">Técnico 1</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>005</td><td style="font-weight:600;">Técnico 2</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>006</td><td style="font-weight:600;">Técnico 3</td><td><span class="pill pill-amber">Ingeniero</span></td><td>CT · Gamma</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>007</td><td style="font-weight:600;">Técnico 4</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>008</td><td style="font-weight:600;">Técnico 5</td><td><span class="pill pill-amber">Ingeniero</span></td><td>Gamma</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>009</td><td style="font-weight:600;">Técnico 6</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI · CT</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>010</td><td style="font-weight:600;">Técnico 7</td><td><span class="pill pill-amber">Ingeniero</span></td><td>MRI</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
-            <tr><td>011</td><td style="font-weight:600;">Administrativo</td><td><span class="pill pill-amber">Ingeniero</span></td><td>—</td><td>11-XXXX-XXXX</td><td><span class="pill pill-green">Activo</span></td></tr>
+          <thead><tr><th>Legajo</th><th>Nombre</th><th>Rol</th><th>Teléfono</th></tr></thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="4" class="loading">Cargando usuarios...</td></tr>
           </tbody>
         </table>
       </div>
@@ -692,16 +522,16 @@
     <!-- ══════════════════════════════════════ -->
     <div class="panel" id="panel-reports">
       <div class="form-row cols-3" style="margin-bottom:16px;">
-        <div class="field"><label>Desde</label><input type="date" id="r-from" value="2026-05-01"/></div>
-        <div class="field"><label>Hasta</label><input type="date" id="r-to" value="2026-05-31"/></div>
+        <div class="field"><label>Desde</label><input type="date" id="r-from"/></div>
+        <div class="field"><label>Hasta</label><input type="date" id="r-to"/></div>
         <div class="field"><label>&nbsp;</label><button class="btn btn-primary" style="width:100%;" onclick="runReport()">🔍 Generar reporte</button></div>
       </div>
 
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-value" id="r-total">12</div><div class="stat-label">Órdenes del período</div></div>
-        <div class="stat-card green"><div class="stat-value" id="r-completed">9</div><div class="stat-label">Completadas</div></div>
-        <div class="stat-card amber"><div class="stat-value" id="r-remote">847</div><div class="stat-label">Min. soporte remoto</div></div>
-        <div class="stat-card"><div class="stat-value" id="r-gastos" style="font-size:18px;">$124.890</div><div class="stat-label">Gastos rendidos</div></div>
+        <div class="stat-card"><div class="stat-value" id="r-total">—</div><div class="stat-label">Órdenes del período</div></div>
+        <div class="stat-card green"><div class="stat-value" id="r-completed">—</div><div class="stat-label">Completadas</div></div>
+        <div class="stat-card amber"><div class="stat-value" id="r-remote">—</div><div class="stat-label">Min. soporte remoto</div></div>
+        <div class="stat-card"><div class="stat-value" id="r-gastos" style="font-size:18px;">—</div><div class="stat-label">Gastos rendidos</div></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -710,11 +540,8 @@
           <div class="card">
             <table class="data-table">
               <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
-              <tbody>
-                <tr><td>Correctivo</td><td style="color:var(--red);">5</td></tr>
-                <tr><td>Preventivo</td><td style="color:var(--green);">3</td></tr>
-                <tr><td>Abono</td><td style="color:var(--blue);">3</td></tr>
-                <tr><td>Garantía</td><td style="color:var(--amber);">1</td></tr>
+              <tbody id="r-types-tbody">
+                <tr><td colspan="2" class="loading">—</td></tr>
               </tbody>
             </table>
           </div>
@@ -724,11 +551,8 @@
           <div class="card">
             <table class="data-table">
               <thead><tr><th>Técnico</th><th>Órdenes</th><th>Min. remoto</th><th>Viáticos</th></tr></thead>
-              <tbody>
-                <tr><td>D. Galliussi</td><td>4</td><td>210</td><td style="color:var(--green);">$81.620</td></tr>
-                <tr><td>Técnico 1</td><td>3</td><td>180</td><td style="color:var(--green);">$57.915</td></tr>
-                <tr><td>Técnico 2</td><td>3</td><td>290</td><td style="color:var(--green);">$59.748</td></tr>
-                <tr><td>Técnico 3</td><td>2</td><td>167</td><td style="color:var(--green);">$39.644</td></tr>
+              <tbody id="r-engineer-tbody">
+                <tr><td colspan="4" class="loading">—</td></tr>
               </tbody>
             </table>
           </div>
@@ -739,16 +563,104 @@
   </div><!-- /content -->
 </div><!-- /main -->
 
+</div><!-- /app-inner -->
+</div><!-- /app -->
+
 <script>
+const API = 'https://vixso-backend-production.up.railway.app';
+let TOKEN = null;
+let SB    = null;
+let allClients = [];
+let currentClientId = null;
+let selectedTemplateId = null;
+
+// ── INIT ──
+(async () => {
+  const cfg = await fetch(`${API}/config/public`).then(r => r.json()).catch(() => null);
+  if (!cfg) { showLoginError('No se puede conectar al servidor.'); return; }
+
+  const { createClient } = supabase;
+  SB = createClient(cfg.supabase_url, cfg.supabase_key);
+
+  const { data: { session } } = await SB.auth.getSession();
+  if (session) {
+    TOKEN = session.access_token;
+    showApp();
+  }
+
+  document.getElementById('t-date').valueAsDate = new Date();
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+  const lastDay  = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
+  document.getElementById('r-from').value = firstDay;
+  document.getElementById('r-to').value   = lastDay;
+})();
+
+// ── AUTH ──
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  try {
+    const { data, error } = await SB.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    TOKEN = data.session.access_token;
+    showApp();
+  } catch(e) {
+    errEl.textContent = 'Email o contraseña incorrectos.';
+    errEl.style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await SB.auth.signOut();
+  TOKEN = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await initApp();
+}
+
+// ── API HELPER ──
+async function api(path, opts = {}) {
+  const r = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${TOKEN}`,
+      ...(opts.headers || {}),
+    }
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || r.statusText);
+  }
+  return r.json();
+}
+
+// ── INIT APP ──
+async function initApp() {
+  await Promise.all([loadDashboard(), loadCurrentTariff()]);
+}
+
 // ── NAVIGATION ──
 const panels = ['dashboard','templates','tariffs','clients','users','reports'];
 const titles = {
-  dashboard: 'Dashboard',
-  templates: 'Plantillas de Equipos',
-  tariffs: 'Tarifas de Viáticos',
-  clients: 'Estado de Clientes',
-  users: 'Usuarios del Sistema',
-  reports: 'Reportes',
+  dashboard: 'Dashboard', templates: 'Plantillas de Equipos',
+  tariffs: 'Tarifas de Viáticos', clients: 'Estado de Clientes',
+  users: 'Usuarios del Sistema', reports: 'Reportes',
 };
 
 function showPanel(id) {
@@ -759,31 +671,307 @@ function showPanel(id) {
   document.getElementById('panel-'+id).classList.add('active');
   document.querySelectorAll('.nav-item')[panels.indexOf(id)].classList.add('active');
   document.getElementById('topbar-title').textContent = titles[id];
+
+  if (id === 'clients')   loadClients();
+  if (id === 'users')     loadUsers();
+  if (id === 'templates') loadTemplates();
+  if (id === 'reports')   runReport();
 }
 
-// ── TEMPLATE SELECTION ──
-function selectTemplate(el, id) {
+// ── DASHBOARD ──
+async function loadDashboard() {
+  try {
+    const [orders, alerts] = await Promise.all([
+      api('/work-orders'),
+      api('/alerts'),
+    ]);
+
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const abiertas   = orders.filter(o => o.status !== 'Completado').length;
+    const completadas = orders.filter(o => o.status === 'Completado' && o.created_at >= firstDay).length;
+
+    document.getElementById('stat-abiertas').textContent    = abiertas;
+    document.getElementById('stat-alertas').textContent     = alerts.component_alerts.count;
+    document.getElementById('stat-clientes-alerta').textContent = alerts.client_alerts.count;
+    document.getElementById('stat-completadas').textContent = completadas;
+
+    // Work orders table
+    const tbody = document.getElementById('recent-orders-tbody');
+    if (!orders.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">Sin órdenes registradas</td></tr>';
+    } else {
+      tbody.innerHTML = orders.slice(0, 15).map(o => `
+        <tr>
+          <td style="font-family:monospace;color:var(--blue);">${o.order_number || '—'}</td>
+          <td>${o.client_name || '—'}</td>
+          <td style="font-size:12px;">${(o.brand||'') + ' ' + (o.model_name||'')}</td>
+          <td>${o.lead_engineer || '—'}</td>
+          <td>${statusPill(o.status)}</td>
+          <td style="color:var(--green);">${o.viatico_efectivo ? '$'+Number(o.viatico_efectivo).toLocaleString('es-AR') : '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Alerts table
+    const alertsTbody = document.getElementById('alerts-tbody');
+    const items = alerts.component_alerts.items;
+    if (!items.length) {
+      alertsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px;">Sin alertas activas ✅</td></tr>';
+    } else {
+      alertsTbody.innerHTML = items.slice(0, 8).map(a => `
+        <tr>
+          <td style="font-weight:600;">${a.component_name || '—'}</td>
+          <td style="font-size:12px;">${(a.brand||'') + ' ' + (a.model_name||'')}</td>
+          <td>${a.client_name || '—'}</td>
+          <td>${a.is_overdue ? '<span class="pill pill-red">🔴 Vencido</span>' : '<span class="pill pill-amber">⏰ Próximo</span>'}</td>
+          <td style="color:${a.is_overdue ? 'var(--red)' : 'var(--amber)'};">${a.days_overdue ? 'Hace '+a.days_overdue+' días' : 'Próximamente'}</td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) {
+    console.error('Dashboard error:', e);
+  }
+}
+
+// ── TARIFFS ──
+async function loadCurrentTariff() {
+  try {
+    const data = await api('/config/tariff');
+    if (!data.current) return;
+    const t = data.current;
+    document.getElementById('display-t1').textContent = '$' + t.km_up_to_150;
+    document.getElementById('display-t2').textContent = '$' + t.km_151_to_400;
+    document.getElementById('display-t3').textContent = '$' + t.km_over_400;
+    document.getElementById('t1').value = t.km_up_to_150;
+    document.getElementById('t2').value = t.km_151_to_400;
+    document.getElementById('t3').value = t.km_over_400;
+    if (t.effective_date) {
+      document.getElementById('tariff-since').textContent =
+        'Vigente desde: ' + formatDate(t.effective_date);
+    }
+
+    const tbody = document.getElementById('tariff-history-tbody');
+    tbody.innerHTML = data.history.map(h => `
+      <tr>
+        <td>${formatDate(h.effective_date)}</td>
+        <td style="color:var(--green);">$${h.km_up_to_150}/km</td>
+        <td style="color:var(--green);">$${h.km_151_to_400}/km</td>
+        <td style="color:var(--green);">$${h.km_over_400}/km</td>
+        <td style="color:var(--text2);">${h.notes || '—'}</td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Tariff error:', e); }
+}
+
+async function saveTariff() {
+  const t1 = document.getElementById('t1').value;
+  const t2 = document.getElementById('t2').value;
+  const t3 = document.getElementById('t3').value;
+  const d  = document.getElementById('t-date').value;
+  const notes = document.getElementById('t-notes').value;
+  if (!t1 || !t2 || !t3 || !d) { alert('Completá todos los campos.'); return; }
+
+  try {
+    await api('/config/tariff', {
+      method: 'POST',
+      body: JSON.stringify({
+        effective_date: d,
+        km_up_to_150: parseFloat(t1),
+        km_151_to_400: parseFloat(t2),
+        km_over_400: parseFloat(t3),
+        notes: notes || null,
+      })
+    });
+    alert('✅ Tarifas guardadas correctamente.');
+    await loadCurrentTariff();
+  } catch(e) { alert('Error al guardar: ' + e.message); }
+}
+
+function simulate() {
+  const km = parseInt(document.getElementById('sim-km').value) || 0;
+  const t1 = parseFloat(document.getElementById('t1').value) || 583;
+  const t2 = parseFloat(document.getElementById('t2').value) || 279;
+  const t3 = parseFloat(document.getElementById('t3').value) || 240;
+  if (km <= 0) {
+    document.getElementById('sim-result').textContent = '—';
+    document.getElementById('sim-half').textContent   = '—';
+    return;
+  }
+  let v = km <= 150 ? km*t1 : km <= 400 ? km*t2 : km*t3;
+  document.getElementById('sim-result').textContent = '$' + v.toLocaleString('es-AR');
+  document.getElementById('sim-half').textContent   = '$' + (v/2).toLocaleString('es-AR');
+}
+
+// ── CLIENTS ──
+async function loadClients() {
+  try {
+    allClients = await api('/clients');
+    renderClients(allClients);
+  } catch(e) { console.error('Clients error:', e); }
+}
+
+function renderClients(list) {
+  const tbody = document.getElementById('clients-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px;">Sin clientes</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => `
+    <tr>
+      <td style="font-weight:600;">${c.name}</td>
+      <td>${c.distance_km} km</td>
+      <td>${statusPill(c.status || 'activo')}</td>
+      <td style="font-size:12px;color:var(--text2);">${c.status_reason || '—'}</td>
+      <td><button class="btn btn-ghost btn-sm"
+          onclick="openStatusModal('${c.id}','${c.name.replace(/'/g,"\\'")}','${c.status||'activo'}','${(c.status_reason||'').replace(/'/g,"\\'")}')">
+          Cambiar</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterClients(f) {
+  const search = document.getElementById('client-search').value.toLowerCase();
+  let list = f === 'all' ? allClients : allClients.filter(c => (c.status||'activo') === f);
+  if (search) list = list.filter(c => c.name.toLowerCase().includes(search));
+  renderClients(list);
+}
+
+function filterClientsText(q) {
+  const list = allClients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+  renderClients(list);
+}
+
+function openStatusModal(id, name, status, reason) {
+  currentClientId = id;
+  document.getElementById('modal-client-name').textContent = name;
+  document.getElementById('modal-status').value  = status;
+  document.getElementById('modal-reason').value  = reason || '';
+  document.getElementById('status-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('status-modal').style.display = 'none';
+}
+
+async function saveStatus() {
+  const status = document.getElementById('modal-status').value;
+  const reason = document.getElementById('modal-reason').value;
+  try {
+    await api(`/clients/${currentClientId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, status_reason: reason })
+    });
+    closeModal();
+    await loadClients();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── USERS ──
+async function loadUsers() {
+  try {
+    const users = await api('/profiles' + '?company=true').catch(() => null);
+    const tbody = document.getElementById('users-tbody');
+    if (!users || !users.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);">Sin usuarios cargados</td></tr>';
+      return;
+    }
+    const roleMap = { admin:'Admin', jefe:'Jefe', engineer:'Ingeniero', admin_viewer:'Viewer' };
+    const pillMap = { admin:'pill-purple', jefe:'pill-blue', engineer:'pill-amber', admin_viewer:'pill-green' };
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.legajo || '—'}</td>
+        <td style="font-weight:600;">${u.full_name}</td>
+        <td><span class="pill ${pillMap[u.role]||'pill-blue'}">${roleMap[u.role]||u.role}</span></td>
+        <td>${u.phone || '—'}</td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Users error:', e); }
+}
+
+// ── TEMPLATES ──
+async function loadTemplates() {
+  try {
+    const templates = await api('/templates');
+    const list = document.getElementById('template-list');
+    if (!templates.length) {
+      list.innerHTML = '<p style="color:var(--text3);font-size:13px;">Sin plantillas. Creá la primera.</p>';
+      return;
+    }
+    const modalMap = { 'Resonancia Magnética':'MRI', 'Tomografía Computada':'CT', 'Cámara Gamma / Medicina Nuclear':'Gamma', 'Rayos X':'RX' };
+    const pillMap  = { MRI:'pill-blue', CT:'pill-purple', Gamma:'pill-amber', RX:'pill-green' };
+    list.innerHTML = templates.map(t => {
+      const mod  = t.modalities?.name || '';
+      const code = modalMap[mod] || 'MED';
+      return `
+        <div class="template-item" onclick="selectTemplate(this,'${t.id}','${t.brand} ${t.model_name}')">
+          <div>
+            <div class="template-name">${t.brand} ${t.model_name}</div>
+            <div class="template-meta">${mod}</div>
+          </div>
+          <span class="pill ${pillMap[code]||'pill-blue'}" style="font-size:10px;">${code}</span>
+        </div>
+      `;
+    }).join('') + `
+      <div style="margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="showNewTemplate()">+ Agregar plantilla</button>
+      </div>
+    `;
+  } catch(e) { console.error('Templates error:', e); }
+}
+
+async function selectTemplate(el, id, name) {
   document.querySelectorAll('.template-item').forEach(t => t.classList.remove('selected'));
   el.classList.add('selected');
+  selectedTemplateId = id;
+  document.getElementById('comp-title').textContent = 'COMPONENTES — ' + name;
+  document.getElementById('add-comp-form').style.display = 'none';
+
+  try {
+    const data = await api(`/templates/${id}`);
+    const list = document.getElementById('comp-list');
+    const comps = data.components || [];
+    if (!comps.length) {
+      list.innerHTML = '<p style="color:var(--text3);font-size:13px;">Sin componentes. Agregá el primero.</p>';
+      return;
+    }
+    list.innerHTML = comps.map(c => {
+      const opts = (c.component_options||[]).map(o => `<span class="opt-tag">${o.option_value}</span>`).join('');
+      const badge = c.lifespan_months ? `<span class="lifecycle-badge">⏱ ${c.lifespan_months} meses</span>` : '';
+      return `
+        <div class="comp-item">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="comp-name">${c.component_name}</div>
+              <span style="font-size:10px;color:var(--text3);">${c.category||''} · ${c.input_type||''}</span>
+              ${badge}
+            </div>
+            ${opts ? `<div class="comp-options">${opts}</div>` : ''}
+            ${c.description ? `<div class="comp-meta">${c.description}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-danger btn-sm" onclick="deleteComponent('${c.id}')">🗑</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e) { console.error('Template detail error:', e); }
 }
 
-// ── ADD COMPONENT ──
+function showNewTemplate() {
+  alert('En la próxima versión: modal para crear plantilla (Marca, Modelo, Modalidad).');
+}
+
 function showAddComponent() {
+  if (!selectedTemplateId) { alert('Seleccioná una plantilla primero.'); return; }
   const f = document.getElementById('add-comp-form');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
-function showNewTemplate() {
-  showPanel('templates');
-  alert('Funcionalidad: crear plantilla nueva. En producción abre un modal con: Marca, Modelo, Modalidad.');
-}
-
-function editComponent(name) {
-  alert('Editar componente: ' + name + '\nEn producción abre el formulario pre-cargado con los valores actuales.');
-}
-
-function toggleLifecycle() {
+function toggleOptionsSection() {
   const type = document.getElementById('input-type-sel').value;
+  document.getElementById('options-section').style.display = type === 'select' ? 'block' : 'none';
 }
 
 function toggleLifecycleCheck(el) {
@@ -809,62 +997,98 @@ function addOption() {
   input.value = '';
 }
 
-// ── TARIFF SIMULATOR ──
-function simulate() {
-  const km = parseInt(document.getElementById('sim-km').value) || 0;
-  const t1 = parseFloat(document.getElementById('t1').value) || 583;
-  const t2 = parseFloat(document.getElementById('t2').value) || 279;
-  const t3 = parseFloat(document.getElementById('t3').value) || 240;
-  let v = 0;
-  if (km <= 0) { document.getElementById('sim-result').textContent = '—'; document.getElementById('sim-half').textContent = '—'; return; }
-  if (km <= 150)      v = km * t1;
-  else if (km <= 400) v = km * t2;
-  else                v = km * t3;
-  document.getElementById('sim-result').textContent = '$' + v.toLocaleString('es-AR');
-  document.getElementById('sim-half').textContent   = '$' + (v/2).toLocaleString('es-AR');
+async function saveComponent() {
+  const name     = document.getElementById('comp-name-input').value.trim();
+  const category = document.getElementById('comp-category').value;
+  const inputType= document.getElementById('input-type-sel').value;
+  const hasLife  = document.getElementById('lifecycle-toggle').classList.contains('on');
+  const lifespan = hasLife ? parseInt(document.getElementById('lifespan-input').value) : null;
+  const options  = [...document.getElementById('options-list').querySelectorAll('.opt-tag')]
+                    .map(t => t.textContent.replace(' ✕','').trim());
+
+  if (!name) { alert('Ingresá el nombre del componente.'); return; }
+
+  try {
+    await api(`/templates/${selectedTemplateId}/components`, {
+      method: 'POST',
+      body: JSON.stringify({
+        component_name: name, category, input_type: inputType,
+        lifespan_months: lifespan, options
+      })
+    });
+    document.getElementById('add-comp-form').style.display = 'none';
+    document.getElementById('comp-name-input').value = '';
+    document.getElementById('options-list').innerHTML = '';
+    const activeItem = document.querySelector('.template-item.selected');
+    if (activeItem) activeItem.click();
+  } catch(e) { alert('Error al guardar componente: ' + e.message); }
 }
 
-function saveTariff() {
-  const t1 = document.getElementById('t1').value;
-  const t2 = document.getElementById('t2').value;
-  const t3 = document.getElementById('t3').value;
-  const d  = document.getElementById('t-date').value;
-  if (!t1 || !t2 || !t3 || !d) { alert('Completá todos los campos.'); return; }
-  document.getElementById('display-t1').textContent = '$' + parseInt(t1).toLocaleString();
-  document.getElementById('display-t2').textContent = '$' + parseInt(t2).toLocaleString();
-  document.getElementById('display-t3').textContent = '$' + parseInt(t3).toLocaleString();
-  alert('✅ Tarifas guardadas. En producción se envía a: POST /config/tariff');
-}
-
-// ── CLIENT STATUS ──
-function openStatusModal(name, status) {
-  document.getElementById('modal-client-name').textContent = name;
-  document.getElementById('modal-status').value = status;
-  document.getElementById('status-modal').style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('status-modal').style.display = 'none';
-}
-
-function saveStatus() {
-  const status = document.getElementById('modal-status').value;
-  const reason = document.getElementById('modal-reason').value;
-  closeModal();
-  alert(`✅ Estado actualizado: ${status}\nEn producción: PATCH /clients/{id}/status`);
-}
-
-function filterClients(f) {
-  // En producción filtra la tabla
+async function deleteComponent(compId) {
+  if (!confirm('¿Eliminar este componente?')) return;
+  try {
+    await api(`/templates/${selectedTemplateId}/components/${compId}`, { method: 'DELETE' });
+    const activeItem = document.querySelector('.template-item.selected');
+    if (activeItem) activeItem.click();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 // ── REPORTS ──
-function runReport() {
-  alert('✅ En producción: GET /reports/summary?date_from=...&date_to=...\nDevuelve órdenes, horas remotas y gastos del período.');
+async function runReport() {
+  const from = document.getElementById('r-from').value;
+  const to   = document.getElementById('r-to').value;
+  if (!from || !to) return;
+
+  try {
+    const [summary, byEng] = await Promise.all([
+      api(`/reports/summary?date_from=${from}&date_to=${to}`),
+      api(`/reports/by-engineer?date_from=${from}&date_to=${to}`)
+    ]);
+
+    document.getElementById('r-total').textContent     = summary.total_ordenes;
+    document.getElementById('r-completed').textContent = summary.por_estado?.Completado || 0;
+    document.getElementById('r-remote').textContent    = summary.total_minutos_remotos || 0;
+    document.getElementById('r-gastos').textContent    = '$' + (summary.total_gastos || 0).toLocaleString('es-AR');
+
+    const typeColors = { Correctivo:'var(--red)', Preventivo:'var(--green)', Abono:'var(--blue)', Garantía:'var(--amber)', Otros:'var(--text2)' };
+    document.getElementById('r-types-tbody').innerHTML =
+      Object.entries(summary.por_tipo || {})
+        .filter(([,n]) => n > 0)
+        .map(([t, n]) => `<tr><td>${t}</td><td style="color:${typeColors[t]||'var(--text)'};">${n}</td></tr>`)
+        .join('') || '<tr><td colspan="2" style="text-align:center;color:var(--text3);">Sin datos</td></tr>';
+
+    document.getElementById('r-engineer-tbody').innerHTML =
+      Object.entries(byEng.por_ingeniero || {})
+        .map(([name, d]) => `
+          <tr>
+            <td>${name}</td>
+            <td>${d.ordenes}</td>
+            <td>${d.minutos_remotos}</td>
+            <td style="color:var(--green);">$${d.viaticos.toLocaleString('es-AR')}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text3);">Sin datos en el período</td></tr>';
+  } catch(e) { console.error('Report error:', e); }
 }
 
-// Init: set today as default date for tariff
-document.getElementById('t-date').valueAsDate = new Date();
+// ── HELPERS ──
+function statusPill(status) {
+  const map = {
+    activo:          '<span class="pill pill-green"><span class="dot"></span>Activo</span>',
+    sin_servicio:    '<span class="pill pill-red"><span class="dot"></span>Sin servicio</span>',
+    deuda:           '<span class="pill pill-amber"><span class="dot"></span>Con deuda</span>',
+    otro_proveedor:  '<span class="pill pill-purple"><span class="dot"></span>Otro proveedor</span>',
+    inactivo:        '<span class="pill pill-red"><span class="dot"></span>Inactivo</span>',
+    Abierto:         '<span class="pill pill-amber"><span class="dot"></span>Abierto</span>',
+    'En Soporte Remoto': '<span class="pill pill-blue"><span class="dot"></span>En Remoto</span>',
+    Completado:      '<span class="pill pill-green"><span class="dot"></span>Completado</span>',
+  };
+  return map[status] || `<span class="pill">${status}</span>`;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d+'T12:00:00').toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+}
 </script>
 </body>
 </html>

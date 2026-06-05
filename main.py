@@ -316,6 +316,10 @@ class ViaticoAdvanceCreate(BaseModel):
 def health():
     return {"status": "ok", "version": "3.0.0"}
 
+@app.get("/config/public", include_in_schema=False)
+def get_public_config():
+    return {"supabase_url": SUPABASE_URL, "supabase_key": SUPABASE_KEY}
+
 
 # ═══════════════════════════════════════════════════════════════
 #  2 — CONFIGURACIÓN GENERAL (admin)
