@@ -44,18 +44,19 @@ from supabase import Client, create_client
 #  CONFIGURACIÓN
 # ─────────────────────────────────────────────
 
-SUPABASE_URL         = os.getenv("SUPABASE_URL", "").strip()
-SUPABASE_KEY         = os.getenv("SUPABASE_KEY", "").strip()          # anon key (frontend)
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()  # service key (backend DB)
-ALLOWED_ORIGINS      = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+SUPABASE_URL    = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_KEY    = os.getenv("SUPABASE_KEY", "").strip()  # debe ser la service role key
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
+# Anon key (pública) hardcodeada para el frontend
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzbG50bGJwYmt6aXF5Y2prZmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjMyODUsImV4cCI6MjA5NjEzOTI4NX0.oL3W6JUW3zjNKvRwwnQm2o1jI1xwvzRMkcBd-Nhmp_Y"
 
 if not SUPABASE_URL or not SUPABASE_URL.startswith("https://"):
     raise RuntimeError(f"SUPABASE_URL inválida: '{SUPABASE_URL}'")
 if not SUPABASE_KEY:
     raise RuntimeError("SUPABASE_KEY no está configurada")
 
-_db_key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
-supabase: Client = create_client(SUPABASE_URL, _db_key)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = FastAPI(title="VIXSO API", version="3.0.0")
 
@@ -316,17 +317,16 @@ class ViaticoAdvanceCreate(BaseModel):
 
 @app.get("/health")
 def health():
-    has_service_key = bool(SUPABASE_SERVICE_KEY)
     try:
         test = supabase.table("profiles").select("id").limit(1).execute()
-        db_ok = True
+        db_ok = len(test.data) >= 0
     except Exception:
         db_ok = False
-    return {"status": "ok", "version": "3.0.0", "service_key": has_service_key, "db": db_ok}
+    return {"status": "ok", "version": "3.0.0", "db": db_ok}
 
 @app.get("/config/public", include_in_schema=False)
 def get_public_config():
-    return {"supabase_url": SUPABASE_URL, "supabase_key": SUPABASE_KEY}
+    return {"supabase_url": SUPABASE_URL, "supabase_key": SUPABASE_ANON_KEY}
 
 
 # ═══════════════════════════════════════════════════════════════
