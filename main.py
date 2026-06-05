@@ -56,7 +56,10 @@ if not SUPABASE_URL or not SUPABASE_URL.startswith("https://"):
 if not SUPABASE_KEY:
     raise RuntimeError("SUPABASE_KEY no está configurada")
 
+# Cliente DB: usa service key → bypasea RLS → para todas las queries
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Cliente Auth: usa anon key → solo para validar JWT del usuario
+supabase_auth: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 app = FastAPI(title="VIXSO API", version="3.0.0")
 
@@ -84,7 +87,7 @@ async def get_current_user(authorization: str = Header(...)):
     if not authorization.startswith("Bearer "):
         raise HTTPException(401, "Token inválido")
     try:
-        user = supabase.auth.get_user(authorization.split("Bearer ")[1])
+        user = supabase_auth.auth.get_user(authorization.split("Bearer ")[1])
         if not user or not user.user:
             raise HTTPException(401, "Sesión expirada")
         return user.user
@@ -92,8 +95,8 @@ async def get_current_user(authorization: str = Header(...)):
         raise HTTPException(401, "No autorizado")
 
 async def get_admin_user(current_user=Depends(get_current_user)):
-    profile = supabase.table("profiles").select("role").eq("id", current_user.id).single().execute().data
-    if not profile or profile["role"] != "admin":
+    result = supabase.table("profiles").select("role").eq("id", current_user.id).execute()
+    if not result.data or result.data[0]["role"] != "admin":
         raise HTTPException(403, "Se requiere rol administrador")
     return current_user
 
