@@ -322,10 +322,26 @@ class ViaticoAdvanceCreate(BaseModel):
 def health():
     try:
         test = supabase.table("profiles").select("id").limit(1).execute()
-        db_ok = len(test.data) >= 0
+        db_ok = len(test.data) > 0
     except Exception:
         db_ok = False
     return {"status": "ok", "version": "3.0.0", "db": db_ok}
+
+@app.get("/debug/key", include_in_schema=False)
+def debug_key():
+    import base64, json as _json
+    def decode_jwt(token):
+        try:
+            payload = token.split('.')[1]
+            payload += '=' * (4 - len(payload) % 4)
+            return _json.loads(base64.b64decode(payload))
+        except Exception as e:
+            return {"error": str(e)}
+    return {
+        "db_key_role": decode_jwt(SUPABASE_KEY).get("role"),
+        "profiles_count": len(supabase.table("profiles").select("id").execute().data),
+        "clients_count":  len(supabase.table("clients").select("id").execute().data),
+    }
 
 @app.get("/config/public", include_in_schema=False)
 def get_public_config():
