@@ -347,6 +347,13 @@ def debug_key():
 def get_public_config():
     return {"supabase_url": SUPABASE_URL, "supabase_key": SUPABASE_ANON_KEY}
 
+@app.get("/me")
+def get_my_profile(current_user=Depends(get_current_user)):
+    result = supabase.table("profiles").select("*").eq("id", current_user.id).execute()
+    if not result.data:
+        raise HTTPException(404, "Perfil no encontrado")
+    return result.data[0]
+
 
 # ═══════════════════════════════════════════════════════════════
 #  2 — CONFIGURACIÓN GENERAL (admin)

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>VIXSO — App Técnico</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   /* ── RESET & BASE ── */
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -321,13 +322,15 @@
       <div style="width:100%;">
         <div class="input-group">
           <label>Usuario</label>
-          <input class="input-field" type="email" placeholder="nombre@bionuclear.com" value="d.galliussi@bionuclear.com"/>
+          <input class="input-field" id="login-email" type="email" placeholder="nombre@bionuclear.com" value="dario.galliussi@gmail.com"/>
         </div>
         <div class="input-group">
           <label>Contraseña</label>
-          <input class="input-field" type="password" placeholder="••••••••" value="••••••••"/>
+          <input class="input-field" id="login-password" type="password" placeholder="••••••••"
+                 onkeydown="if(event.key==='Enter')doLogin()"/>
         </div>
-        <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="go('s-dashboard')">
+        <div id="login-error" style="display:none;color:#ff3d5a;font-size:12px;margin-bottom:8px;text-align:center;"></div>
+        <button class="btn btn-primary btn-full" id="login-btn" style="margin-top:8px;" onclick="doLogin()">
           <span>🔐</span> Ingresar al sistema
         </button>
       </div>
@@ -348,11 +351,14 @@
     <div style="padding:12px 20px 8px; display:flex; align-items:center; justify-content:space-between;">
       <div>
         <p style="font-size:11px; color:var(--text2); letter-spacing:.5px;">BIENVENIDO</p>
-        <h2 style="margin-top:2px;">Dario G. 👋</h2>
+        <h2 style="margin-top:2px;" id="dash-greeting">— 👋</h2>
       </div>
-      <div style="position:relative; cursor:pointer;" onclick="go('s-alerts')">
-        <div style="width:42px;height:42px;background:var(--card-b);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔔</div>
-        <div style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);">2</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="position:relative; cursor:pointer;" onclick="go('s-alerts')">
+          <div style="width:42px;height:42px;background:var(--card-b);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔔</div>
+          <div id="dash-alert-badge" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);" id="dash-alert-count">—</div>
+        </div>
+        <div style="width:42px;height:42px;background:var(--card-b);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;" onclick="doLogout()" title="Salir">🚪</div>
       </div>
     </div>
 
@@ -361,80 +367,39 @@
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-value">3</div>
-          <div class="stat-label">Órdenes hoy</div>
+          <div class="stat-value" id="dash-stat-ordenes">—</div>
+          <div class="stat-label">Abiertas</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" style="color:var(--green);">127</div>
-          <div class="stat-label">Min. remoto</div>
+          <div class="stat-value" id="dash-stat-remote" style="color:var(--green);">—</div>
+          <div class="stat-label">Completadas</div>
         </div>
         <div class="stat-card" onclick="go('s-alerts')" style="cursor:pointer;">
-          <div class="stat-value" style="color:var(--red);">2</div>
+          <div class="stat-value" id="dash-stat-alertas" style="color:var(--red);">—</div>
           <div class="stat-label">Alertas</div>
         </div>
       </div>
 
       <!-- Alert banner -->
-      <div class="alert-banner" onclick="go('s-alerts')">
+      <div class="alert-banner" id="dash-alert-banner" onclick="go('s-alerts')" style="display:none;">
         <div class="alert-icon">⚠️</div>
         <div class="alert-text">
-          <div class="alert-title">2 componentes requieren atención</div>
-          <div class="alert-sub">Coldhead vencido · Philips Ingenia 3T — Italiano</div>
+          <div class="alert-title" id="dash-alert-title">Componentes requieren atención</div>
+          <div class="alert-sub" id="dash-alert-sub"></div>
         </div>
         <div style="color:var(--text3); font-size:18px;">›</div>
       </div>
 
-      <!-- Active ticket -->
-      <div class="section-title">EN PROGRESO</div>
-      <div class="ticket-card glow-blue" onclick="go('s-order')">
-        <div class="ticket-header">
-          <div>
-            <div class="ticket-order">OS-00023</div>
-            <div class="ticket-client">Sanatorio Güemes</div>
-            <div class="ticket-equip">⚡ Philips Ingenia 3T — S/N: PH38291A</div>
-          </div>
-          <div class="pill pill-blue"><div class="dot"></div> Remoto</div>
-        </div>
-        <p style="font-size:12px;color:var(--text2);">Error de gradientes en secuencia T2. Soporte remoto en curso.</p>
-        <div class="ticket-footer">
-          <div class="ticket-time">⏱ Hace 42 min</div>
-          <div style="font-size:12px;color:var(--blue);font-weight:600;">Ver detalle ›</div>
-        </div>
+      <!-- Nueva Orden button -->
+      <div style="padding:4px 16px 4px;">
+        <button class="btn btn-primary btn-full" onclick="go('s-new-order')" style="padding:14px;">
+          <span>➕</span> Nueva Orden de Trabajo
+        </button>
       </div>
 
-      <!-- Pending tickets -->
-      <div class="section-title">PENDIENTES</div>
-
-      <div class="ticket-card" onclick="go('s-order')">
-        <div class="ticket-header">
-          <div>
-            <div class="ticket-order">OS-00024</div>
-            <div class="ticket-client">Hospital Italiano</div>
-            <div class="ticket-equip">🔬 Siemens SOMATOM — S/N: SI09832C</div>
-          </div>
-          <div class="pill pill-amber"><div class="dot"></div> Abierto</div>
-        </div>
-        <p style="font-size:12px;color:var(--text2);">Preventivo anual. Revisión de tubo y filtros.</p>
-        <div class="ticket-footer">
-          <div class="ticket-time">📅 Hoy 14:00</div>
-          <div class="pill pill-purple" style="font-size:11px;">Garantía</div>
-        </div>
-      </div>
-
-      <div class="ticket-card urgent" onclick="go('s-order')">
-        <div class="ticket-header">
-          <div>
-            <div class="ticket-order">OS-00025</div>
-            <div class="ticket-client">Clínica IAMA</div>
-            <div class="ticket-equip">☢️ GE Infinia — S/N: GE77201B</div>
-          </div>
-          <div class="pill pill-red"><div class="dot"></div> Urgente</div>
-        </div>
-        <p style="font-size:12px;color:var(--text2);">Cámara gamma fuera de servicio. Falla en cabezal 2.</p>
-        <div class="ticket-footer">
-          <div class="ticket-time">🚨 Crítico</div>
-          <div class="pill pill-amber" style="font-size:11px;">Correctivo</div>
-        </div>
+      <!-- Dynamic orders list -->
+      <div id="orders-list">
+        <div style="padding:20px 16px;color:var(--text3);text-align:center;">Cargando órdenes...</div>
       </div>
 
     </div>
@@ -1122,12 +1087,141 @@
     </button>
   </div>
 
+  <!-- ══════════════════════════════════════ -->
+  <!-- SCREEN: NUEVA ORDEN                    -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="screen hidden" id="s-new-order">
+    <div class="screen-header">
+      <div class="back-btn" onclick="go('s-dashboard')">←</div>
+      <div><h2>Nueva Orden</h2></div>
+    </div>
+    <div class="scroll-body">
+
+      <div style="padding:0 16px;">
+
+        <div class="input-group">
+          <label>Buscar cliente</label>
+          <input class="input-field" id="no-client-search" type="search"
+                 placeholder="Escribí el nombre del cliente..."
+                 oninput="searchClients(this.value)"/>
+        </div>
+        <div id="no-client-results"></div>
+
+        <div id="no-selected-client" style="display:none;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);border-radius:12px;padding:12px;margin-bottom:16px;">
+          <p style="font-size:11px;color:var(--text2);">CLIENTE SELECCIONADO</p>
+          <p style="font-size:15px;font-weight:700;color:var(--text);margin-top:4px;" id="no-client-label">—</p>
+          <p style="font-size:12px;color:var(--green);margin-top:2px;" id="no-viatico-label"></p>
+        </div>
+
+        <div id="no-equip-section" style="display:none;">
+          <div class="input-group">
+            <label>Equipo</label>
+            <select class="input-field" id="no-asset-select" onchange="onAssetChange()">
+              <option value="">Sin equipo registrado</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="no-details-section" style="display:none;">
+          <div class="input-group">
+            <label>Tipo de servicio</label>
+            <select class="input-field" id="no-service-type">
+              <option value="Correctivo">Correctivo</option>
+              <option value="Preventivo">Preventivo</option>
+              <option value="Abono">Abono</option>
+              <option value="Garantía">Garantía</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Motivo / Descripción</label>
+            <textarea class="input-field" id="no-call-reason" rows="3"
+                      placeholder="Describí brevemente el motivo del servicio..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-full" id="no-create-btn" onclick="createOrder()" style="margin-top:4px;padding:16px;">
+            ✅ Crear Orden de Trabajo
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div><!-- /shell -->
 
 <script>
+// ── CONFIG ──
+const API          = 'https://vixso-backend-production.up.railway.app';
+const SB_URL       = 'https://tslntlbpbkziqycjkfjh.supabase.co';
+const SB_ANON      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzbG50bGJwYmt6aXF5Y2prZmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjMyODUsImV4cCI6MjA5NjEzOTI4NX0.oL3W6JUW3zjNKvRwwnQm2o1jI1xwvzRMkcBd-Nhmp_Y';
+
+let SB, TOKEN, USER_ID, USER_NAME = 'Técnico';
+
+// ── INIT ──
+(async () => {
+  const { createClient } = supabase;
+  SB = createClient(SB_URL, SB_ANON);
+  const { data: { session } } = await SB.auth.getSession();
+  if (session) {
+    TOKEN = session.access_token;
+    USER_ID = session.user.id;
+    await loadProfile();
+    go('s-dashboard');
+    loadDashboard();
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+})();
+
+// ── AUTH ──
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  btn.textContent = 'Ingresando...';
+  try {
+    const { data, error } = await SB.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    TOKEN   = data.session.access_token;
+    USER_ID = data.user.id;
+    await loadProfile();
+    go('s-dashboard');
+    loadDashboard();
+  } catch(e) {
+    errEl.textContent = 'Usuario o contraseña incorrectos';
+    errEl.style.display = 'block';
+  } finally {
+    btn.innerHTML = '<span>🔐</span> Ingresar al sistema';
+  }
+}
+
+async function doLogout() {
+  await SB.auth.signOut();
+  TOKEN = USER_ID = null;
+  go('s-login');
+}
+
+async function loadProfile() {
+  try {
+    const p = await api('/me');
+    USER_NAME = p.full_name?.split(' ')[0] || 'Técnico';
+  } catch(e) {}
+}
+
+// ── API HELPER ──
+async function api(path, opts = {}) {
+  const r = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${TOKEN}`, ...(opts.headers||{}) }
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.detail || r.statusText); }
+  return r.json();
+}
+
 // ── NAVIGATION ──
 let currentScreen = 's-login';
-
 function go(id) {
   const from = document.getElementById(currentScreen);
   const to   = document.getElementById(id);
@@ -1136,97 +1230,235 @@ function go(id) {
   to.classList.remove('hidden');
   setTimeout(() => from.classList.remove('slide-left'), 350);
   currentScreen = id;
-  window.scrollTo(0,0);
 }
 
 // ── CLOCK ──
 function updateClock() {
   const now = new Date();
-  const h = now.getHours().toString().padStart(2,'0');
-  const m = now.getMinutes().toString().padStart(2,'0');
-  document.getElementById('clock').textContent = h + ':' + m;
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 }
-updateClock();
-setInterval(updateClock, 30000);
 
-// ── TIMER ──
-let timerInterval = null;
-let timerSeconds  = 2537; // 42:17 simulated
+// ── DASHBOARD ──
+async function loadDashboard() {
+  try {
+    document.getElementById('dash-greeting').textContent = USER_NAME + ' 👋';
+    const [orders, alerts] = await Promise.all([ api('/work-orders'), api('/alerts') ]);
 
+    const abiertas   = orders.filter(o => o.status !== 'Completado').length;
+    const completadas = orders.filter(o => o.status === 'Completado').length;
+    document.getElementById('dash-stat-ordenes').textContent = abiertas;
+    document.getElementById('dash-stat-remote').textContent  = completadas;
+    document.getElementById('dash-stat-alertas').textContent = alerts.total;
+    document.getElementById('dash-alert-badge').textContent  = alerts.total;
+
+    if (alerts.total > 0) {
+      document.getElementById('dash-alert-banner').style.display = 'flex';
+      const first = alerts.component_alerts.items[0];
+      if (first) {
+        document.getElementById('dash-alert-title').textContent = alerts.total + ' componente(s) requieren atención';
+        document.getElementById('dash-alert-sub').textContent   = (first.component_name||'') + ' · ' + (first.client_name||'');
+      }
+    }
+
+    const container = document.getElementById('orders-list');
+    if (!orders.length) {
+      container.innerHTML = '<p style="padding:20px 16px;color:var(--text3);text-align:center;">Sin órdenes registradas</p>';
+      return;
+    }
+
+    const sMap = {
+      'Abierto': '<span class="pill pill-amber"><span class="dot"></span> Abierto</span>',
+      'En Soporte Remoto': '<span class="pill pill-blue"><span class="dot"></span> Remoto</span>',
+      'Completado': '<span class="pill pill-green"><span class="dot"></span> Completado</span>',
+    };
+    const pill = s => sMap[s] || `<span class="pill">${s}</span>`;
+    const fmtDate = d => d ? new Date(d).toLocaleDateString('es-AR',{day:'numeric',month:'short'}) : '—';
+
+    const open = orders.filter(o => o.status !== 'Completado');
+    const done = orders.filter(o => o.status === 'Completado').slice(0, 3);
+    let html = '';
+
+    if (open.length) {
+      html += '<div class="section-title">EN PROGRESO / PENDIENTES</div>';
+      open.slice(0, 8).forEach(o => {
+        html += `
+          <div class="ticket-card ${o.status==='En Soporte Remoto'?'glow-blue':''}" onclick="go('s-order')">
+            <div class="ticket-header">
+              <div>
+                <div class="ticket-order">${o.order_number||'—'}</div>
+                <div class="ticket-client">${o.client_name||'—'}</div>
+                <div class="ticket-equip">${o.equipment||'Sin equipo asignado'}</div>
+              </div>
+              ${pill(o.status)}
+            </div>
+            <p style="font-size:12px;color:var(--text2);">${o.call_reason||''}</p>
+            <div class="ticket-footer">
+              <div class="ticket-time">${fmtDate(o.created_at)}</div>
+              <div style="font-size:12px;color:var(--blue);font-weight:600;">Ver ›</div>
+            </div>
+          </div>`;
+      });
+    }
+    if (done.length) {
+      html += '<div class="section-title">COMPLETADAS RECIENTES</div>';
+      done.forEach(o => {
+        html += `
+          <div class="ticket-card" style="opacity:.65;">
+            <div class="ticket-header">
+              <div>
+                <div class="ticket-order">${o.order_number||'—'}</div>
+                <div class="ticket-client">${o.client_name||'—'}</div>
+              </div>
+              ${pill(o.status)}
+            </div>
+            <div class="ticket-footer"><div class="ticket-time">${fmtDate(o.created_at)}</div></div>
+          </div>`;
+      });
+    }
+    container.innerHTML = html;
+  } catch(e) { console.error('Dashboard error:', e); }
+}
+
+// ── NUEVA ORDEN ──
+let selClientId = null, selAssetId = null, clientTimer = null;
+
+function searchClients(q) {
+  clearTimeout(clientTimer);
+  const res = document.getElementById('no-client-results');
+  if (q.length < 2) { res.innerHTML = ''; return; }
+  clientTimer = setTimeout(async () => {
+    try {
+      const clients = await api(`/clients?search=${encodeURIComponent(q)}`);
+      res.innerHTML = clients.slice(0, 6).map(c => `
+        <div class="ticket-card" style="margin:4px 0;padding:12px;" onclick="selectClient('${c.id}','${c.name.replace(/'/g,"\\'")}','${c.viatico_amount||0}')">
+          <div style="font-size:14px;font-weight:600;">${c.name}</div>
+          <div style="font-size:12px;color:var(--text2);">${c.distance_km} km · $${Number(c.viatico_amount||0).toLocaleString('es-AR')}</div>
+          ${c.status && c.status!=='activo'?`<span class="pill pill-red" style="font-size:10px;margin-top:4px;">⚠ ${c.status}</span>`:''}
+        </div>`).join('') || '<p style="padding:8px;color:var(--text3);">Sin resultados</p>';
+    } catch(e) {}
+  }, 300);
+}
+
+async function selectClient(id, name, viatico) {
+  selClientId = id;
+  document.getElementById('no-client-search').value = name;
+  document.getElementById('no-client-results').innerHTML = '';
+  document.getElementById('no-client-label').textContent = name;
+  document.getElementById('no-viatico-label').textContent = 'Viático: $' + Number(viatico).toLocaleString('es-AR');
+  document.getElementById('no-selected-client').style.display = 'block';
+
+  try {
+    const assets = await api(`/assets?client_id=${id}`);
+    const sel = document.getElementById('no-asset-select');
+    sel.innerHTML = assets.length
+      ? assets.map(a => `<option value="${a.id}">${a.brand} ${a.model_name} · ${a.serial_number}</option>`).join('')
+      : '<option value="">Sin equipos registrados</option>';
+    selAssetId = assets[0]?.id || null;
+    document.getElementById('no-equip-section').style.display = 'block';
+    document.getElementById('no-details-section').style.display = 'block';
+  } catch(e) {
+    document.getElementById('no-details-section').style.display = 'block';
+  }
+}
+
+function onAssetChange() {
+  selAssetId = document.getElementById('no-asset-select').value || null;
+}
+
+async function createOrder() {
+  if (!selClientId) { alert('Seleccioná un cliente primero'); return; }
+  const reason = document.getElementById('no-call-reason').value.trim();
+  if (!reason) { alert('Ingresá el motivo del servicio'); return; }
+
+  const btn = document.getElementById('no-create-btn');
+  btn.textContent = 'Creando...'; btn.disabled = true;
+
+  try {
+    const result = await api('/work-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_id:    selClientId,
+        asset_id:     selAssetId || null,
+        service_type: document.getElementById('no-service-type').value,
+        call_reason:  reason,
+        engineer_id:  USER_ID
+      })
+    });
+
+    // Reset form
+    selClientId = selAssetId = null;
+    document.getElementById('no-client-search').value = '';
+    document.getElementById('no-call-reason').value   = '';
+    document.getElementById('no-client-results').innerHTML = '';
+    document.getElementById('no-selected-client').style.display = 'none';
+    document.getElementById('no-equip-section').style.display   = 'none';
+    document.getElementById('no-details-section').style.display = 'none';
+
+    go('s-dashboard');
+    await loadDashboard();
+    alert('✅ ' + (result.order?.order_number || 'Orden') + ' creada correctamente.');
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = '✅ Crear Orden de Trabajo'; btn.disabled = false;
+  }
+}
+
+// ── TIMER (soporte remoto) ──
+let timerInterval = null, timerSeconds = 0;
 function formatTime(s) {
-  const h = Math.floor(s / 3600).toString().padStart(2,'0');
-  const m = Math.floor((s % 3600) / 60).toString().padStart(2,'0');
-  const sec = (s % 60).toString().padStart(2,'0');
-  return h > '00' ? `${h}:${m}:${sec}` : `${m}:${sec}`;
+  const m = Math.floor(s/60).toString().padStart(2,'0');
+  const sec = (s%60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
 }
-
 function startTimerLoop() {
   if (timerInterval) return;
+  timerSeconds = 0;
   timerInterval = setInterval(() => {
     timerSeconds++;
     const el = document.getElementById('timer-display');
-    if (el) el.textContent = '00:' + formatTime(timerSeconds);
+    if (el) el.textContent = formatTime(timerSeconds);
   }, 1000);
 }
 function stopTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
+  clearInterval(timerInterval); timerInterval = null;
   const el = document.getElementById('timer-display');
-  if (el) { el.classList.remove('timer-active'); }
+  if (el) el.classList.remove('timer-active');
   go('s-order');
 }
-startTimerLoop();
 
 // ── TOOL SELECTOR ──
 function selectTool(t) {
-  ['tv','ad','am'].forEach(id => {
-    document.getElementById('tool-'+id).classList.remove('selected');
-  });
-  document.getElementById('tool-'+t).classList.add('selected');
+  ['tv','ad','am'].forEach(id => document.getElementById('tool-'+id)?.classList.remove('selected'));
+  document.getElementById('tool-'+t)?.classList.add('selected');
 }
 
 // ── SIGNATURE ──
-let signed = true;
+let signed = false;
 function toggleSignature() {
   signed = !signed;
   const el = document.getElementById('sig-pad');
-  if (signed) {
-    el.textContent = '✅ Firma capturada';
-    el.classList.add('sig-done');
-  } else {
-    el.textContent = '✍️ Toca para firmar';
-    el.classList.remove('sig-done');
-  }
+  if (signed) { el.textContent = '✅ Firma capturada'; el.classList.add('sig-done'); }
+  else         { el.textContent = '✍️ Toca para firmar'; el.classList.remove('sig-done'); }
 }
 
 // ── COMPLETE ORDER ──
 function completeOrder() {
   go('s-done');
-  // Confetti-like animation
   const shell = document.getElementById('shell');
   for (let i = 0; i < 12; i++) {
     const dot = document.createElement('div');
-    dot.style.cssText = `
-      position:absolute; width:6px; height:6px; border-radius:50%;
-      background:${['#00c8ff','#7b2ff7','#00e676','#ffb300'][i%4]};
-      left:${Math.random()*100}%; top:${Math.random()*60+20}%;
-      animation:fall .8s ease-out ${Math.random()*0.5}s forwards;
-      pointer-events:none; z-index:999;
-    `;
+    dot.style.cssText = `position:absolute;width:6px;height:6px;border-radius:50%;background:${['#00c8ff','#7b2ff7','#00e676','#ffb300'][i%4]};left:${Math.random()*100}%;top:${Math.random()*60+20}%;animation:fall .8s ease-out ${Math.random()*.5}s forwards;pointer-events:none;z-index:999;`;
     shell.appendChild(dot);
     setTimeout(() => dot.remove(), 1500);
   }
 }
 
-// ── CONFETTI KEYFRAMES ──
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fall {
-    0%   { transform:translateY(0) scale(1); opacity:1; }
-    100% { transform:translateY(80px) scale(0); opacity:0; }
-  }
-`;
-document.head.appendChild(style);
+// ── CONFETTI ──
+const _s = document.createElement('style');
+_s.textContent = '@keyframes fall{0%{transform:translateY(0) scale(1);opacity:1;}100%{transform:translateY(80px) scale(0);opacity:0;}}';
+document.head.appendChild(_s);
 </script>
 </body>
 </html>
