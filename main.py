@@ -265,7 +265,7 @@ class PCCreate(BaseModel):
 
 class WorkOrderCreate(BaseModel):
     client_id: str
-    asset_id: str
+    asset_id: Optional[str] = None
     service_type: str
     call_reason: str
     additional_engineer_ids: Optional[List[str]] = None  # ingenieros adicionales
@@ -639,13 +639,17 @@ def create_work_order(order: WorkOrderCreate, current_user=Depends(get_current_u
     """
     company_id = get_company_id(current_user)
 
-    client = supabase.table("clients").select("distance_km, name, status, status_reason") \
-        .eq("id", order.client_id).single().execute().data
-    if not client:
+    client_r = supabase.table("clients").select("distance_km, name, status, status_reason") \
+        .eq("id", order.client_id).execute()
+    if not client_r.data:
         raise HTTPException(404, "Cliente no encontrado")
+    client = client_r.data[0]
 
-    asset = supabase.table("medical_assets").select("modality_id, brand, model_name") \
-        .eq("id", order.asset_id).single().execute().data
+    asset = None
+    if order.asset_id:
+        r = supabase.table("medical_assets").select("modality_id, brand, model_name") \
+            .eq("id", order.asset_id).execute()
+        asset = r.data[0] if r.data else None
 
     viatico = calculate_viatico(company_id, client["distance_km"])
 

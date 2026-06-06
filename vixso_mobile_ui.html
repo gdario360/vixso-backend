@@ -1381,8 +1381,7 @@ async function createOrder() {
         client_id:    selClientId,
         asset_id:     selAssetId || null,
         service_type: document.getElementById('no-service-type').value,
-        call_reason:  reason,
-        engineer_id:  USER_ID
+        call_reason:  reason
       })
     });
 
@@ -1399,7 +1398,7 @@ async function createOrder() {
     await loadDashboard();
     alert('✅ ' + (result.order?.order_number || 'Orden') + ' creada correctamente.');
   } catch(e) {
-    alert('Error: ' + e.message);
+    alert('Error al crear la orden: ' + (e.message || JSON.stringify(e)));
   } finally {
     btn.innerHTML = '✅ Crear Orden de Trabajo'; btn.disabled = false;
   }
