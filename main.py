@@ -339,6 +339,8 @@ def debug_key():
             return {"error": str(e)}
     return {
         "db_key_role": decode_jwt(SUPABASE_KEY).get("role"),
+        "key_suffix": SUPABASE_KEY[-10:] if len(SUPABASE_KEY) > 10 else "corta",
+        "key_len": len(SUPABASE_KEY),
         "profiles_count": len(supabase.table("profiles").select("id").execute().data),
         "clients_count":  len(supabase.table("clients").select("id").execute().data),
     }
