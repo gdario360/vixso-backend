@@ -45,7 +45,7 @@ from supabase import Client, create_client
 # ─────────────────────────────────────────────
 
 SUPABASE_URL    = os.getenv("SUPABASE_URL", "").strip()
-SUPABASE_KEY    = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_KEY", "")).strip()  # service role key
+SUPABASE_KEY    = (os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("CLAVE_DE_SERVICIO_SUPABASE") or os.getenv("SUPABASE_KEY", "")).strip()  # service role key
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 # Anon key (pública) hardcodeada para el frontend
