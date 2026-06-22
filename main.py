@@ -213,6 +213,15 @@ class ReplacementRegister(BaseModel):
 class AlertDismiss(BaseModel):
     dismiss_reason: Optional[str] = None
 
+class ClientCreate(BaseModel):
+    name: str
+    city: Optional[str] = None
+    province: Optional[str] = None
+    address: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    distance_km: int
+
 class AssetCreate(BaseModel):
     client_id: str
     modality_id: str
@@ -464,6 +473,16 @@ def list_clients(status: Optional[str] = None, search: Optional[str] = None,
     if search:
         q = q.ilike("name", f"%{search}%")
     return q.order("name").execute().data
+
+@app.post("/clients")
+def create_client(client: ClientCreate, current_user=Depends(get_current_user)):
+    company_id = get_company_id(current_user)
+    viatico = calculate_viatico(company_id, client.distance_km)
+    data = client.model_dump()
+    data["company_id"] = company_id
+    data["viatico_amount"] = viatico
+    result = supabase.table("clients").insert(data).execute()
+    return result.data[0]
 
 @app.get("/clients/alerts")
 def get_client_alerts(current_user=Depends(get_current_user)):

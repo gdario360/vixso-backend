@@ -464,7 +464,8 @@
         <button class="btn btn-ghost btn-sm" onclick="filterClients('deuda')"><span style="color:var(--amber);">●</span> Con deuda</button>
         <button class="btn btn-ghost btn-sm" onclick="filterClients('otro_proveedor')"><span style="color:var(--text2);">●</span> Otro proveedor</button>
         <input type="text" id="client-search" placeholder="Buscar cliente..." oninput="filterClientsText(this.value)"
-               style="margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;outline:none;width:200px;"/>
+               style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;outline:none;width:200px;"/>
+        <button class="btn btn-primary btn-sm" onclick="openNewClientModal()" style="margin-left:auto;">+ Nuevo Cliente</button>
       </div>
 
       <div class="card">
@@ -499,6 +500,47 @@
           <div style="display:flex;gap:8px;">
             <button class="btn btn-primary" onclick="saveStatus()">💾 Guardar</button>
             <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal nuevo cliente -->
+      <div id="new-client-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:101;align-items:center;justify-content:center;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:520px;max-width:95vw;">
+          <h3 style="margin-bottom:20px;">Nuevo Cliente</h3>
+          <div class="form-row cols-2">
+            <div class="field" style="grid-column:1/-1;">
+              <label>Nombre del cliente / institución *</label>
+              <input type="text" id="nc-name" placeholder="Ej: Hospital Italiano de La Plata"/>
+            </div>
+            <div class="field">
+              <label>Ciudad</label>
+              <input type="text" id="nc-city" placeholder="Ej: La Plata"/>
+            </div>
+            <div class="field">
+              <label>Provincia</label>
+              <input type="text" id="nc-province" placeholder="Ej: Buenos Aires"/>
+            </div>
+            <div class="field" style="grid-column:1/-1;">
+              <label>Dirección</label>
+              <input type="text" id="nc-address" placeholder="Ej: Calle 51 N° 1750"/>
+            </div>
+            <div class="field">
+              <label>Contacto</label>
+              <input type="text" id="nc-contact-name" placeholder="Nombre del referente"/>
+            </div>
+            <div class="field">
+              <label>Teléfono</label>
+              <input type="text" id="nc-contact-phone" placeholder="Ej: +54 11 4123-4567"/>
+            </div>
+            <div class="field" style="grid-column:1/-1;">
+              <label>Distancia desde la base (km) * — se usa para calcular el viático</label>
+              <input type="number" id="nc-distance" placeholder="Ej: 58" min="0" max="2000"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn btn-ghost" onclick="closeNewClientModal()">Cancelar</button>
+            <button class="btn btn-primary" id="nc-save-btn" onclick="saveNewClient()">Guardar cliente</button>
           </div>
         </div>
       </div>
@@ -1155,6 +1197,47 @@ function statusPill(status) {
 function formatDate(d) {
   if (!d) return '—';
   return new Date(d+'T12:00:00').toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+}
+
+// ── NUEVO CLIENTE ────────────────────────────────────────────
+function openNewClientModal() {
+  ['nc-name','nc-city','nc-province','nc-address','nc-contact-name','nc-contact-phone','nc-distance']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('new-client-modal').style.display = 'flex';
+}
+
+function closeNewClientModal() {
+  document.getElementById('new-client-modal').style.display = 'none';
+}
+
+async function saveNewClient() {
+  const name     = document.getElementById('nc-name').value.trim();
+  const distance = parseInt(document.getElementById('nc-distance').value);
+  if (!name)            { alert('El nombre es obligatorio'); return; }
+  if (!distance || distance < 0) { alert('Ingresá la distancia en km'); return; }
+
+  const btn = document.getElementById('nc-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    await api('/clients', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        city:          document.getElementById('nc-city').value.trim() || null,
+        province:      document.getElementById('nc-province').value.trim() || null,
+        address:       document.getElementById('nc-address').value.trim() || null,
+        contact_name:  document.getElementById('nc-contact-name').value.trim() || null,
+        contact_phone: document.getElementById('nc-contact-phone').value.trim() || null,
+        distance_km:   distance,
+      })
+    });
+    closeNewClientModal();
+    loadClients();
+  } catch(e) {
+    alert('Error: ' + (e.message || JSON.stringify(e)));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar cliente';
+  }
 }
 
 // ── EQUIPOS ──────────────────────────────────────────────────
