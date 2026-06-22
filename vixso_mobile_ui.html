@@ -410,7 +410,7 @@
         <div class="nav-icon">📋</div>
         <div class="nav-label">ÓRDENES</div>
       </div>
-      <div class="nav-item" onclick="go('s-equipment')">
+      <div class="nav-item" onclick="go('s-equipment');loadEquipments()">
         <div class="nav-icon">🔬</div>
         <div class="nav-label">EQUIPOS</div>
       </div>
@@ -859,7 +859,7 @@
         <div class="nav-icon">📋</div>
         <div class="nav-label">ÓRDENES</div>
       </div>
-      <div class="nav-item" onclick="go('s-equipment')">
+      <div class="nav-item" onclick="go('s-equipment');loadEquipments()">
         <div class="nav-icon">🔬</div>
         <div class="nav-label">EQUIPOS</div>
       </div>
@@ -889,50 +889,12 @@
     </div>
     <div class="scroll-body">
       <div style="padding:0 16px 12px;">
-        <input class="input-field" type="search" placeholder="🔍  Buscar por cliente o número de serie..."/>
+        <input class="input-field" id="equip-search" type="search"
+               placeholder="🔍  Buscar por cliente, marca o serie..."
+               oninput="searchEquipments(this.value)"/>
       </div>
-
-      <!-- Equipment cards -->
-      <div class="ticket-card glow-blue" onclick="go('s-mri-detail')">
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--blue2),var(--purple));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⚡</div>
-          <div>
-            <div style="font-size:11px;color:var(--blue);font-weight:600;">RESONANCIA · MIB-CBO</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text);">Philips Ingenia 3T</div>
-            <div style="font-size:12px;color:var(--text2);">Hospital Italiano · S/N: PH38291A</div>
-          </div>
-          <div style="margin-left:auto;">
-            <span class="pill pill-red" style="font-size:10px;">1 alerta</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="ticket-card">
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div style="width:48px;height:48px;background:linear-gradient(135deg,#1a4a8a,#0055aa);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🔬</div>
-          <div>
-            <div style="font-size:11px;color:var(--blue);font-weight:600;">TOMOGRAFÍA · 64 CORTES</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text);">Siemens SOMATOM</div>
-            <div style="font-size:12px;color:var(--text2);">Hospital Argentino · S/N: SI09832C</div>
-          </div>
-          <div style="margin-left:auto;">
-            <span class="pill pill-amber" style="font-size:10px;">1 alerta</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="ticket-card">
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div style="width:48px;height:48px;background:linear-gradient(135deg,#1a5a3a,#007744);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">☢️</div>
-          <div>
-            <div style="font-size:11px;color:var(--green);font-weight:600;">CÁMARA GAMMA · 2 CABEZALES</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text);">GE Infinia</div>
-            <div style="font-size:12px;color:var(--text2);">Clínica IAMA · S/N: GE77201B</div>
-          </div>
-          <div style="margin-left:auto;">
-            <span class="pill pill-green" style="font-size:10px;">OK</span>
-          </div>
-        </div>
+      <div id="equip-list" style="padding:0 16px;">
+        <p style="text-align:center;color:var(--text2);padding:32px;">Cargando...</p>
       </div>
 
     </div>
@@ -1364,6 +1326,64 @@ async function selectClient(id, name, viatico) {
 
 function onAssetChange() {
   selAssetId = document.getElementById('no-asset-select').value || null;
+}
+
+// ── EQUIPOS ──────────────────────────────────────────────────
+let equipTimer = null;
+
+async function loadEquipments(search = '') {
+  const list = document.getElementById('equip-list');
+  list.innerHTML = '<p style="text-align:center;color:var(--text2);padding:32px;">Cargando...</p>';
+  try {
+    const url = search ? `/assets?search=${encodeURIComponent(search)}` : '/assets';
+    const assets = await api(url);
+    if (!assets.length) {
+      list.innerHTML = '<p style="text-align:center;color:var(--text2);padding:32px;">Sin equipos encontrados</p>';
+      return;
+    }
+    list.innerHTML = assets.map(renderEquipCard).join('');
+  } catch(e) {
+    list.innerHTML = '<p style="text-align:center;color:var(--red);padding:32px;">Error al cargar equipos</p>';
+  }
+}
+
+function searchEquipments(q) {
+  clearTimeout(equipTimer);
+  equipTimer = setTimeout(() => loadEquipments(q), 400);
+}
+
+function getModalityIcon(name) {
+  if (!name) return '🏥';
+  const n = name.toLowerCase();
+  if (n.includes('resonan') || n.includes('mri') || n.includes('rm')) return '⚡';
+  if (n.includes('tomograf') || n.includes('ct') || n.includes('tac')) return '🔬';
+  if (n.includes('gamma') || n.includes('spect') || n.includes('nuclear')) return '☢️';
+  if (n.includes('rayos') || n.includes('rx')) return '📡';
+  if (n.includes('ultra') || n.includes('eco')) return '🔊';
+  return '🏥';
+}
+
+function renderEquipCard(a) {
+  const modName  = a.modalities?.name || '';
+  const icon     = getModalityIcon(modName);
+  const status   = a.clients?.status || 'activo';
+  const pill     = status !== 'activo'
+    ? `<span class="pill pill-red" style="font-size:10px;">alerta</span>`
+    : `<span class="pill pill-green" style="font-size:10px;">OK</span>`;
+  const clientTxt = a.clients ? `${a.clients.name}${a.clients.city ? ' · ' + a.clients.city : ''}` : '—';
+  const modLabel  = modName ? modName.toUpperCase() : 'EQUIPO';
+  return `
+    <div class="ticket-card glow-blue">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--blue2),var(--purple));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:var(--blue);font-weight:600;">${modLabel}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.brand} ${a.model_name}</div>
+          <div style="font-size:12px;color:var(--text2);">${clientTxt} · S/N: ${a.serial_number || '—'}</div>
+        </div>
+        <div style="margin-left:auto;flex-shrink:0;">${pill}</div>
+      </div>
+    </div>`;
 }
 
 async function createOrder() {
