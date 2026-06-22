@@ -441,7 +441,17 @@ def delete_option(template_id: str, comp_id: str, opt_id: str, admin=Depends(get
 
 
 # ═══════════════════════════════════════════════════════════════
-#  4 — CLIENTES
+#  4 — MODALIDADES
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/modalities")
+def list_modalities(current_user=Depends(get_current_user)):
+    company_id = get_company_id(current_user)
+    return supabase.table("modalities").select("id, name").eq("company_id", company_id).order("name").execute().data
+
+
+# ═══════════════════════════════════════════════════════════════
+#  5 — CLIENTES
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/clients")

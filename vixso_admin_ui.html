@@ -194,6 +194,9 @@
     <div class="nav-item" onclick="showPanel('templates')">
       <span class="nav-icon">🔧</span> Plantillas de Equipos
     </div>
+    <div class="nav-item" onclick="showPanel('equipos')">
+      <span class="nav-icon">🔬</span> Equipos
+    </div>
     <div class="nav-item" onclick="showPanel('tariffs')">
       <span class="nav-icon">💰</span> Tarifas de Viáticos
     </div>
@@ -560,6 +563,69 @@
       </div>
     </div>
 
+    <!-- ══════════════════════════════════════ -->
+    <!-- PANEL: EQUIPOS                         -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="panel" id="panel-equipos">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="section-title" id="equip-count" style="margin:0;">Cargando...</div>
+        <button class="btn btn-primary" onclick="openEquipModal()">+ Nuevo Equipo</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Marca / Modelo</th><th>N° Serie</th><th>Modalidad</th>
+            <th>Cliente</th><th>Ciudad</th><th>Instalación</th>
+          </tr></thead>
+          <tbody id="equip-tbody">
+            <tr><td colspan="6" class="loading">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal nuevo equipo -->
+    <div id="equip-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:540px;max-width:95vw;">
+        <h3 style="margin-bottom:20px;">Registrar Equipo</h3>
+        <div class="form-row" style="grid-template-columns:1fr;">
+          <div class="field">
+            <label>Cliente</label>
+            <input type="search" id="eq-client-search" placeholder="Escribí el nombre del cliente..." oninput="searchEquipClients(this.value)" autocomplete="off"/>
+            <div id="eq-client-results" style="position:absolute;z-index:200;background:var(--bg3);border:1px solid var(--border);border-radius:10px;width:480px;max-height:180px;overflow-y:auto;display:none;margin-top:4px;"></div>
+            <input type="hidden" id="eq-client-id"/>
+            <div id="eq-client-selected" style="display:none;font-size:12px;color:var(--green);margin-top:5px;"></div>
+          </div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="field">
+            <label>Modalidad</label>
+            <select id="eq-modality"><option value="">Seleccioná...</option></select>
+          </div>
+          <div class="field">
+            <label>Marca</label>
+            <input type="text" id="eq-brand" placeholder="Ej: Philips, Siemens, GE"/>
+          </div>
+          <div class="field">
+            <label>Modelo</label>
+            <input type="text" id="eq-model" placeholder="Ej: Ingenia 3T"/>
+          </div>
+          <div class="field">
+            <label>N° Serie</label>
+            <input type="text" id="eq-serial" placeholder="Ej: PH38291A"/>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Fecha de instalación (opcional)</label>
+            <input type="date" id="eq-install-date"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+          <button class="btn btn-ghost" onclick="closeEquipModal()">Cancelar</button>
+          <button class="btn btn-primary" id="eq-save-btn" onclick="saveEquipment()">Guardar equipo</button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -656,11 +722,11 @@ async function initApp() {
 }
 
 // ── NAVIGATION ──
-const panels = ['dashboard','templates','tariffs','clients','users','reports'];
+const panels = ['dashboard','templates','equipos','tariffs','clients','users','reports'];
 const titles = {
   dashboard: 'Dashboard', templates: 'Plantillas de Equipos',
-  tariffs: 'Tarifas de Viáticos', clients: 'Estado de Clientes',
-  users: 'Usuarios del Sistema', reports: 'Reportes',
+  equipos: 'Equipos', tariffs: 'Tarifas de Viáticos',
+  clients: 'Estado de Clientes', users: 'Usuarios del Sistema', reports: 'Reportes',
 };
 
 function showPanel(id) {
@@ -676,6 +742,7 @@ function showPanel(id) {
   if (id === 'users')     loadUsers();
   if (id === 'templates') loadTemplates();
   if (id === 'reports')   runReport();
+  if (id === 'equipos')   loadEquipmentsAdmin();
 }
 
 // ── DASHBOARD ──
@@ -1088,6 +1155,120 @@ function statusPill(status) {
 function formatDate(d) {
   if (!d) return '—';
   return new Date(d+'T12:00:00').toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+}
+
+// ── EQUIPOS ──────────────────────────────────────────────────
+async function loadEquipmentsAdmin() {
+  const tbody = document.getElementById('equip-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
+  try {
+    const assets = await api('/assets');
+    document.getElementById('equip-count').textContent = `${assets.length} equipo${assets.length !== 1 ? 's' : ''} registrado${assets.length !== 1 ? 's' : ''}`;
+    if (!assets.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3);">Sin equipos registrados. Usá "+ Nuevo Equipo" para agregar el primero.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = assets.map(a => `
+      <tr>
+        <td><strong>${a.brand}</strong> ${a.model_name}</td>
+        <td style="font-family:monospace;color:var(--blue);">${a.serial_number || '—'}</td>
+        <td>${a.modalities?.name || '—'}</td>
+        <td>${a.clients?.name || '—'}</td>
+        <td style="color:var(--text2);">${a.clients?.city || '—'}</td>
+        <td style="color:var(--text2);">${formatDate(a.installation_date)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--red);text-align:center;padding:16px;">Error al cargar equipos</td></tr>';
+  }
+}
+
+let equipClientTimer = null, equipModalities = [];
+
+async function openEquipModal() {
+  document.getElementById('eq-client-search').value = '';
+  document.getElementById('eq-client-id').value = '';
+  document.getElementById('eq-client-selected').style.display = 'none';
+  document.getElementById('eq-client-results').style.display = 'none';
+  document.getElementById('eq-brand').value = '';
+  document.getElementById('eq-model').value = '';
+  document.getElementById('eq-serial').value = '';
+  document.getElementById('eq-install-date').value = '';
+
+  if (!equipModalities.length) {
+    try {
+      equipModalities = await api('/modalities');
+      const sel = document.getElementById('eq-modality');
+      sel.innerHTML = '<option value="">Seleccioná modalidad...</option>' +
+        equipModalities.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    } catch(e) { console.error('modalities:', e); }
+  }
+  document.getElementById('equip-modal').style.display = 'flex';
+}
+
+function closeEquipModal() {
+  document.getElementById('equip-modal').style.display = 'none';
+}
+
+async function searchEquipClients(q) {
+  clearTimeout(equipClientTimer);
+  const res = document.getElementById('eq-client-results');
+  if (q.length < 2) { res.style.display = 'none'; return; }
+  equipClientTimer = setTimeout(async () => {
+    const clients = await api(`/clients?search=${encodeURIComponent(q)}`);
+    if (!clients.length) { res.style.display = 'none'; return; }
+    res.innerHTML = clients.slice(0, 8).map(c =>
+      `<div onclick="selectEquipClient('${c.id}','${c.name.replace(/'/g,"\\'")}','${c.city||''}')"
+            style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
+            onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <strong>${c.name}</strong> <span style="color:var(--text2);font-size:11px;">${c.city||''}</span>
+      </div>`
+    ).join('');
+    res.style.display = 'block';
+  }, 350);
+}
+
+function selectEquipClient(id, name, city) {
+  document.getElementById('eq-client-id').value = id;
+  document.getElementById('eq-client-search').value = name + (city ? ' — ' + city : '');
+  document.getElementById('eq-client-results').style.display = 'none';
+  const sel = document.getElementById('eq-client-selected');
+  sel.textContent = '✓ Cliente seleccionado';
+  sel.style.display = 'block';
+}
+
+async function saveEquipment() {
+  const clientId  = document.getElementById('eq-client-id').value;
+  const modId     = document.getElementById('eq-modality').value;
+  const brand     = document.getElementById('eq-brand').value.trim();
+  const model     = document.getElementById('eq-model').value.trim();
+  const serial    = document.getElementById('eq-serial').value.trim();
+  const installDt = document.getElementById('eq-install-date').value;
+
+  if (!clientId)  { alert('Seleccioná un cliente'); return; }
+  if (!modId)     { alert('Seleccioná la modalidad'); return; }
+  if (!brand)     { alert('Ingresá la marca'); return; }
+  if (!model)     { alert('Ingresá el modelo'); return; }
+  if (!serial)    { alert('Ingresá el número de serie'); return; }
+
+  const btn = document.getElementById('eq-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  try {
+    await api('/assets', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_id: clientId, modality_id: modId,
+        brand, model_name: model, serial_number: serial,
+        installation_date: installDt || null,
+      })
+    });
+    closeEquipModal();
+    loadEquipmentsAdmin();
+  } catch(e) {
+    alert('Error: ' + (e.message || JSON.stringify(e)));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar equipo';
+  }
 }
 </script>
 </body>
