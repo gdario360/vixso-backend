@@ -337,10 +337,16 @@ def debug_key():
             return _json.loads(base64.b64decode(payload))
         except Exception as e:
             return {"error": str(e)}
+    raw_service = os.getenv("SUPABASE_SERVICE_KEY", "NO_EXISTE").strip()
+    raw_key     = os.getenv("SUPABASE_KEY", "NO_EXISTE").strip()
     return {
         "db_key_role": decode_jwt(SUPABASE_KEY).get("role"),
         "key_suffix": SUPABASE_KEY[-10:] if len(SUPABASE_KEY) > 10 else "corta",
         "key_len": len(SUPABASE_KEY),
+        "env_SERVICE_KEY_suffix": raw_service[-10:] if len(raw_service) > 10 else raw_service,
+        "env_SERVICE_KEY_len": len(raw_service),
+        "env_SUPABASE_KEY_suffix": raw_key[-10:] if len(raw_key) > 10 else raw_key,
+        "env_SUPABASE_KEY_len": len(raw_key),
         "profiles_count": len(supabase.table("profiles").select("id").execute().data),
         "clients_count":  len(supabase.table("clients").select("id").execute().data),
     }
