@@ -337,16 +337,12 @@ def debug_key():
             return _json.loads(base64.b64decode(payload))
         except Exception as e:
             return {"error": str(e)}
-    raw_service = os.getenv("SUPABASE_SERVICE_KEY", "NO_EXISTE").strip()
-    raw_key     = os.getenv("SUPABASE_KEY", "NO_EXISTE").strip()
+    def key_info(val): return {"suffix": val[-10:], "len": len(val), "role": decode_jwt(val).get("role")} if len(val) > 10 else {"val": val}
     return {
-        "db_key_role": decode_jwt(SUPABASE_KEY).get("role"),
-        "key_suffix": SUPABASE_KEY[-10:] if len(SUPABASE_KEY) > 10 else "corta",
-        "key_len": len(SUPABASE_KEY),
-        "env_SERVICE_KEY_suffix": raw_service[-10:] if len(raw_service) > 10 else raw_service,
-        "env_SERVICE_KEY_len": len(raw_service),
-        "env_SUPABASE_KEY_suffix": raw_key[-10:] if len(raw_key) > 10 else raw_key,
-        "env_SUPABASE_KEY_len": len(raw_key),
+        "SUPABASE_KEY":             key_info(os.getenv("SUPABASE_KEY", "NO")),
+        "SUPABASE_SERVICE_KEY":     key_info(os.getenv("SUPABASE_SERVICE_KEY", "NO")),
+        "CLAVE_DE_SERVICIO_SUPABASE": key_info(os.getenv("CLAVE_DE_SERVICIO_SUPABASE", "NO")),
+        "active_db_key_role": decode_jwt(SUPABASE_KEY).get("role"),
         "profiles_count": len(supabase.table("profiles").select("id").execute().data),
         "clients_count":  len(supabase.table("clients").select("id").execute().data),
     }
